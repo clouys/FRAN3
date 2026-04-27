@@ -54,7 +54,7 @@ On the right bar, you will see the different masks recognized by the model, and 
 
 By right-clicking a mask, an options menu will appear letting you label the tree, erase the mask, or edit it.
 
-On the left menu bar, you will see, on the upper part, the images uploaded if in folder mode. Folders uploaded should have a json file for each image, specifying some spatial metrics needed to create the polygons afterwards, for them to be correctly displayed in an application such as [QGIS](https://qgis.org). Below, a text prompt will show which lets you type what you want SAM3 to recognize. Finally, an export menu will let you choose the exporting folder or export automatically to a certain destination, downloading a folder containing one GeoPackage file by image to that location.
+On the left menu bar, you will see, on the upper part, the images uploaded if in folder mode. Folders of orthomosaic tiles uploaded should have a json file for each image, specifying some spatial metrics needed to create the polygons afterwards, for them to be correctly displayed in an application such as [QGIS](https://qgis.org) and to be compared with the orthomosaic image. Below, a text prompt will show which lets you type what you want SAM3 to recognize. Finally, an export menu will let you choose the exporting folder or export automatically to a certain destination, downloading a folder containing one GeoPackage file per image to that location. 
 
 <img width="1695" height="978" alt="Screenshot 2026-04-27 at 11 30 41" src="https://github.com/user-attachments/assets/afa22efc-2ce5-4f0a-8c58-f8e2c3b32381" />
 
