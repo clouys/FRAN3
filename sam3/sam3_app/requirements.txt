@@ -1,0 +1,14 @@
+# SAM3 Flask App – extra dependencies (SAM3 itself must already be installed)
+flask>=3.0
+requests
+Geopandas
+scikit-image
+einops
+shapely
+rasterio
+pandas
+matplotlib
+pillow
+Opencv-python
+Pycocotools
+psutil

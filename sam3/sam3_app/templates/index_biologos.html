@@ -1,0 +1,2423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRAN3 · Forest Region ANnotation 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0e12; --bg2:#13151c; --bg3:#1a1d27;
+  --border:#2a2d3e; --border-hi:#3d4160;
+  --text:#e8eaf0; --text-muted:#7a7f9a; --text-dim:#4a4e66;
+  --accent:#6c63ff; --accent-glow:rgba(108,99,255,0.25);
+  --accent2:#00d4aa; --accent2-glow:rgba(0,212,170,0.2);
+  --danger:#ff4d6d; --warn:#f5a623;
+  --done:#00d4aa; --inprog:#f5a623; --todo:#4a4e66;
+  --brush-color:#00d4aa; --eraser-color:#ff4d6d;
+  --font-head:'Syne',sans-serif; --font-mono:'DM Mono',monospace;
+  --radius:10px; --radius-lg:16px;
+  --shadow:0 4px 24px rgba(0,0,0,.5); --shadow-lg:0 8px 40px rgba(0,0,0,.7);
+  --transition:.18s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:13px;line-height:1.6;overflow:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:99px}
+
+/* ── layout ── */
+#root{display:grid;grid-template-rows:52px 44px 1fr;grid-template-columns:280px 1fr 260px;height:100vh}
+
+/* ── header ── */
+header{grid-column:1/-1;display:flex;align-items:center;padding:0 16px;background:var(--bg2);border-bottom:1px solid var(--border);gap:12px;z-index:50}
+.logo{font-family:var(--font-head);font-weight:800;font-size:17px;letter-spacing:-.5px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 6px var(--accent)}50%{box-shadow:0 0 16px var(--accent),0 0 30px var(--accent-glow)}}
+
+/* nav controls (folder mode) */
+#nav-controls{display:none;align-items:center;gap:6px;flex-shrink:0}
+#nav-controls.visible{display:flex}
+.nav-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text-muted);cursor:pointer;transition:all var(--transition);flex-shrink:0}
+.nav-btn:hover:not(:disabled){border-color:var(--border-hi);color:var(--text);background:var(--bg2)}
+.nav-btn:disabled{opacity:.3;cursor:not-allowed}
+.nav-btn svg{width:14px;height:14px}
+#nav-counter{font-size:11px;color:var(--text-muted);white-space:nowrap;font-family:var(--font-mono);min-width:52px;text-align:center}
+
+/* progress bar */
+#progress-wrap{display:none;flex-direction:column;gap:3px;min-width:120px}
+#progress-wrap.visible{display:flex}
+#progress-label{font-size:10px;color:var(--text-muted)}
+#progress-bar-bg{height:4px;background:var(--border);border-radius:99px;overflow:hidden}
+#progress-bar-fill{height:100%;background:var(--accent2);border-radius:99px;transition:width .4s ease}
+
+.header-sep{flex:1}
+#edit-banner{display:none;align-items:center;gap:6px;padding:4px 10px;background:rgba(0,212,170,.08);border:1px solid var(--accent2);border-radius:99px;font-size:11px;color:var(--accent2);white-space:nowrap}
+#edit-banner.visible{display:flex}
+#edit-banner svg{width:11px;height:11px}
+#status-bar{font-size:11px;color:var(--text-muted);padding:4px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:99px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color var(--transition)}
+#status-bar.loading{color:var(--accent)}
+#status-bar.success{color:var(--accent2)}
+#status-bar.error{color:var(--danger)}
+
+/* ── toolbar ── */
+#toolbar{grid-column:1/-1;grid-row:2;display:flex;align-items:center;gap:6px;padding:0 16px;background:var(--bg2);border-bottom:1px solid var(--border);z-index:40}
+.tool-group{display:flex;align-items:center;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:3px}
+.tool-btn{display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 10px;border-radius:7px;border:none;cursor:pointer;font-family:var(--font-mono);font-size:11px;font-weight:500;color:var(--text-muted);background:transparent;transition:all var(--transition);white-space:nowrap}
+.tool-btn svg{width:14px;height:14px;flex-shrink:0}
+.tool-btn:hover{color:var(--text);background:var(--bg2)}
+.tool-btn.active-box{background:rgba(108,99,255,.18);color:var(--accent)}
+.tool-btn.active-brush{background:rgba(0,212,170,.15);color:var(--accent2)}
+.tool-btn.active-eraser{background:rgba(255,77,109,.15);color:var(--danger)}
+.toolbar-sep{width:1px;height:22px;background:var(--border);margin:0 4px}
+.brush-size-group,.edit-target-group{display:flex;align-items:center;gap:8px;opacity:0;pointer-events:none;transition:opacity var(--transition)}
+.brush-size-group.visible,.edit-target-group.visible{opacity:1;pointer-events:auto}
+.brush-size-group label,.edit-target-group label{font-size:11px;color:var(--text-muted);white-space:nowrap}
+#brush-size-slider{-webkit-appearance:none;width:80px;height:3px;background:var(--border);border-radius:99px;outline:none;cursor:pointer}
+#brush-size-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--accent2);border-radius:50%}
+#brush-size-val{font-size:11px;color:var(--accent2);min-width:24px}
+#edit-mask-select{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:11px;padding:4px 8px;border-radius:7px;outline:none;cursor:pointer}
+#undo-btn,#commit-btn{opacity:0;pointer-events:none;transition:opacity var(--transition)}
+#undo-btn.visible,#commit-btn.visible{opacity:1;pointer-events:auto}
+#undo-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;border:none;cursor:pointer;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);background:transparent}
+#undo-btn:hover{color:var(--text);background:var(--bg3)}
+#undo-btn svg{width:13px;height:13px}
+#commit-btn{padding:5px 12px;border-radius:7px;border:none;cursor:pointer;font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--accent2);color:var(--bg);box-shadow:0 0 10px var(--accent2-glow)}
+#commit-btn:hover{background:#00e8bb}
+.toggle-group{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.toggle-btn{flex:1;padding:7px 10px;background:var(--bg);border:none;color:var(--text-muted);font-family:var(--font-mono);font-size:11px;cursor:pointer;transition:all var(--transition);border-right:1px solid var(--border)}
+.toggle-btn:last-child{border-right:none}
+.toggle-btn.active-pos{background:rgba(0,212,170,.15);color:var(--accent2)}
+.toggle-btn.active-neg{background:rgba(255,77,109,.15);color:var(--danger)}
+
+/* ── sidebars ── */
+#sidebar{grid-row:3;grid-column:1;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;padding:14px 12px;display:flex;flex-direction:column;gap:10px;min-height:0}
+#right-panel{grid-row:3;grid-column:3;background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;overflow-x:hidden;padding:14px 12px;display:flex;flex-direction:column;gap:10px;min-height:0}
+/* make mask list independently scrollable */
+#sec-masks .section-body{padding:8px;max-height:400px;overflow-y:auto}
+#mask-list{display:flex;flex-direction:column;gap:6px}
+
+/* ── section ── */
+.section{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.section-head{padding:9px 12px;font-family:var(--font-head);font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;background:var(--bg2)}
+.section-head svg{width:13px;height:13px;opacity:.7}
+.section-head .chevron{margin-left:auto;transition:transform var(--transition)}
+.section.collapsed .chevron{transform:rotate(-90deg)}
+.section-body{padding:12px;display:flex;flex-direction:column;gap:9px}
+.section.collapsed .section-body{display:none}
+
+/* ── forms ── */
+label.field-label{font-size:11px;color:var(--text-muted);letter-spacing:.5px;margin-bottom:3px;display:block}
+input[type="text"],input[type="url"]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:7px 11px;outline:none;transition:border-color var(--transition),box-shadow var(--transition)}
+input[type="text"]:focus,input[type="url"]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+input::placeholder{color:var(--text-dim)}
+input[type="range"]{-webkit-appearance:none;width:100%;height:4px;background:var(--border);border-radius:99px;outline:none;cursor:pointer}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent-glow)}
+.range-row{display:flex;align-items:center;gap:10px}
+.range-val{font-size:11px;color:var(--accent);min-width:30px;text-align:right}
+
+/* ── buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 13px;border-radius:var(--radius);border:none;cursor:pointer;font-family:var(--font-mono);font-size:12px;font-weight:500;transition:all var(--transition);white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 12px var(--accent-glow)}
+.btn-primary:hover:not(:disabled){background:#7d75ff;transform:translateY(-1px)}
+.btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover:not(:disabled){border-color:var(--border-hi);background:var(--bg3)}
+.btn-success{background:var(--accent2);color:var(--bg);box-shadow:0 2px 12px var(--accent2-glow)}
+.btn-success:hover:not(:disabled){background:#00e8bb;transform:translateY(-1px)}
+.btn-warn{background:transparent;color:var(--warn);border:1px solid var(--warn)}
+.btn-warn:hover:not(:disabled){background:rgba(245,166,35,.1)}
+.btn-full{width:100%}
+
+/* ── drop zone ── */
+#drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:18px;text-align:center;cursor:pointer;transition:all var(--transition);color:var(--text-muted);font-size:12px;line-height:1.8}
+#drop-zone:hover,#drop-zone.drag-over{border-color:var(--accent);background:var(--accent-glow);color:var(--text)}
+#file-input,#folder-input{display:none}
+
+/* ── canvas area ── */
+#canvas-area{grid-row:3;grid-column:2;background:var(--bg);overflow:auto;position:relative}
+#canvas-area-inner{padding:24px;box-sizing:border-box;display:inline-flex;align-items:flex-start;justify-content:flex-start;min-width:100%;min-height:100%}
+#canvas-wrap{position:relative;display:inline-block;box-shadow:var(--shadow-lg);border-radius:4px;overflow:hidden;border:1px solid var(--border);flex-shrink:0}
+#neighbor-canvas{position:absolute;z-index:0;pointer-events:none;image-rendering:pixelated;top:0;left:0}
+#img-canvas,#overlay-canvas,#paint-canvas,#box-canvas{position:absolute;top:0;left:0;display:block}
+#img-canvas{z-index:1}
+#overlay-canvas{z-index:2;opacity:.85;pointer-events:none}
+#paint-canvas{z-index:3;opacity:.7;pointer-events:none}
+#box-canvas{z-index:4;pointer-events:none}
+#interact-canvas{position:absolute;top:0;left:0;z-index:5;display:block;cursor:crosshair}
+#placeholder{display:flex;flex-direction:column;align-items:center;gap:16px;color:var(--text-dim);font-family:var(--font-head);font-size:15px;text-align:center;padding:60px 40px;background:var(--bg2);border:2px dashed var(--border);border-radius:var(--radius-lg)}
+#placeholder svg{opacity:.3}
+
+/* ── brush cursor ── */
+#brush-cursor{position:fixed;border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);border:2px solid var(--accent2);display:none;mix-blend-mode:difference}
+
+/* ════════════════ FILMSTRIP ════════════════ */
+#filmstrip-section{display:none}
+#filmstrip-section.visible{display:block}
+#filmstrip{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;padding:2px}
+
+.film-card{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:pointer;transition:all var(--transition);position:relative}
+.film-card:hover{border-color:var(--border-hi);background:var(--bg3)}
+.film-card.active{border-color:var(--accent);background:rgba(108,99,255,.1)}
+.film-card.done{border-left:3px solid var(--done)}
+.film-card.inprog{border-left:3px solid var(--inprog)}
+.film-thumb{width:52px;height:39px;object-fit:cover;border-radius:5px;flex-shrink:0;background:var(--bg3)}
+.film-thumb-placeholder{width:52px;height:39px;border-radius:5px;flex-shrink:0;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--text-dim)}
+.film-info{flex:1;min-width:0}
+.film-name{font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.film-status{font-size:10px;margin-top:2px}
+.film-status.done{color:var(--done)}
+.film-status.inprog{color:var(--inprog)}
+.film-status.todo{color:var(--text-dim)}
+.film-idx{font-size:10px;color:var(--text-dim);flex-shrink:0}
+
+/* ════════════════ WELCOME MODAL ════════════════ */
+#welcome-modal{position:fixed;inset:0;z-index:10000;background:rgba(13,14,18,.92);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center}
+#welcome-modal.hidden{display:none}
+.welcome-box{background:var(--bg2);border:1px solid var(--border-hi);border-radius:20px;padding:40px;width:480px;max-width:90vw;box-shadow:var(--shadow-lg)}
+.welcome-logo{font-family:var(--font-head);font-weight:800;font-size:28px;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.welcome-logo-dot{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 16px var(--accent)}
+.welcome-sub{color:var(--text-muted);font-size:13px;margin-bottom:32px}
+.mode-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+.mode-card{border:2px solid var(--border);border-radius:var(--radius-lg);padding:20px 16px;cursor:pointer;transition:all var(--transition);text-align:center;background:var(--bg3)}
+.mode-card:hover{border-color:var(--accent);background:rgba(108,99,255,.08)}
+.mode-card.selected{border-color:var(--accent);background:rgba(108,99,255,.12)}
+.mode-card svg{width:28px;height:28px;margin-bottom:10px;opacity:.8}
+.mode-card-title{font-family:var(--font-head);font-size:14px;font-weight:700;margin-bottom:4px}
+.mode-card-desc{font-size:11px;color:var(--text-muted);line-height:1.5}
+
+/* folder path input inside modal */
+#folder-path-wrap{display:none;flex-direction:column;gap:10px;margin-bottom:20px}
+#folder-path-wrap.visible{display:flex}
+.folder-path-row{display:flex;gap:8px}
+#modal-folder-path{flex:1}
+.modal-browse-btn{padding:7px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;font-family:var(--font-mono);font-size:11px;white-space:nowrap;transition:all var(--transition)}
+.modal-browse-btn:hover{border-color:var(--border-hi)}
+.modal-folder-hint{font-size:11px;color:var(--text-muted)}
+.welcome-start-btn{width:100%;padding:12px;border-radius:var(--radius-lg);border:none;cursor:pointer;font-family:var(--font-head);font-size:15px;font-weight:700;background:var(--accent);color:#fff;box-shadow:0 4px 20px var(--accent-glow);transition:all var(--transition)}
+.welcome-start-btn:hover{background:#7d75ff;transform:translateY(-1px)}
+.welcome-start-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ════════════════ CONTEXT MENU ════════════════ */
+#ctx-menu{position:fixed;z-index:9999;min-width:210px;background:var(--bg2);border:1px solid var(--border-hi);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:8px;display:none;animation:ctx-appear .12s cubic-bezier(.4,0,.2,1)}
+@keyframes ctx-appear{from{opacity:0;transform:scale(.94) translateY(-4px)}to{opacity:1;transform:scale(1) translateY(0)}}
+#ctx-menu.visible{display:block}
+.ctx-header{padding:6px 8px 8px;border-bottom:1px solid var(--border);margin-bottom:6px}
+.ctx-mask-title{font-family:var(--font-head);font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.ctx-mask-swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.ctx-score{font-size:10px;color:var(--text-muted);margin-top:2px}
+.ctx-label{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--text-dim);padding:4px 8px 2px}
+.ctx-species-list{max-height:160px;overflow-y:auto}
+.ctx-species-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;font-size:12px;transition:all var(--transition)}
+.ctx-species-item:hover{background:var(--accent-glow);color:var(--accent)}
+.ctx-species-item.selected{background:var(--accent-glow);color:var(--accent);font-weight:500}
+.ctx-species-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ctx-empty{padding:10px;color:var(--text-dim);font-size:11px;text-align:center;font-style:italic}
+.ctx-footer{border-top:1px solid var(--border);margin-top:6px;padding-top:6px}
+.ctx-footer-btn{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border-radius:7px;border:none;background:transparent;color:var(--text-muted);font-family:var(--font-mono);font-size:11px;cursor:pointer;transition:all var(--transition);text-align:left}
+.ctx-footer-btn:hover{background:var(--bg3);color:var(--text)}
+.ctx-footer-btn.edit-btn:hover{background:rgba(0,212,170,.1);color:var(--accent2)}
+.ctx-footer-btn.danger:hover{background:rgba(255,77,109,.1);color:var(--danger)}
+
+/* species & mask cards */
+.species-chip{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;transition:border-color var(--transition)}
+.species-chip:hover{border-color:var(--border-hi)}
+.chip-color{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.chip-name{flex:1}
+.chip-id{font-size:10px;color:var(--text-dim)}
+.chip-del{width:18px;height:18px;border-radius:4px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;transition:all var(--transition)}
+.chip-color{cursor:pointer;position:relative;transition:transform var(--transition),box-shadow var(--transition)}
+.chip-color:hover{transform:scale(1.25);box-shadow:0 0 0 2px var(--border-hi)}
+.chip-color input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:none;padding:0}
+.chip-del:hover{background:rgba(255,77,109,.15);color:var(--danger)}
+.chip-del svg{width:10px;height:10px;pointer-events:none}
+.mask-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;font-size:12px;display:flex;align-items:center;gap:7px;transition:border-color var(--transition),background var(--transition);cursor:default}
+.mask-card:hover{border-color:var(--border-hi);background:var(--bg3)}
+.mask-card.highlighted{border-color:var(--accent);background:var(--accent-glow)}
+.mask-card.editing{border-color:var(--accent2);background:rgba(0,212,170,.08)}
+.mask-card.isolated{border-color:#f5a623;background:rgba(245,166,35,.08)}
+.mask-card.frozen{border-color:#4a9eff;background:rgba(74,158,255,.08)}
+.mask-edit-btn.frozen-active{color:#4a9eff !important;border-color:#4a9eff !important}
+/* dim all other mask cards when one is isolated */
+#mask-list.has-isolated .mask-card:not(.isolated){opacity:.35}
+.mask-swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.mask-info{flex:1;min-width:0}
+.mask-score{font-size:10px;color:var(--text-muted)}
+.mask-species-badge{font-size:10px;padding:2px 7px;border-radius:99px;background:var(--accent-glow);color:var(--accent);border:1px solid var(--accent);white-space:nowrap}
+.mask-species-badge.unset{background:transparent;color:var(--text-dim);border-color:var(--border)}
+.mask-edit-btn{width:22px;height:22px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--transition);flex-shrink:0}
+.mask-edit-btn:hover{border-color:var(--accent2);color:var(--accent2);background:rgba(0,212,170,.08)}
+.mask-edit-btn svg{width:11px;height:11px}
+
+/* loading & toast */
+#loading-overlay{position:fixed;inset:0;background:rgba(13,14,18,.75);backdrop-filter:blur(6px);z-index:9000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#loading-overlay.visible{display:flex}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:var(--font-head);font-size:14px;color:var(--text)}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg2);border:1px solid var(--border-hi);color:var(--text);padding:10px 20px;border-radius:99px;font-size:12px;z-index:9999;transition:transform .3s cubic-bezier(.4,0,.2,1);pointer-events:none;white-space:nowrap}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+.empty-hint{color:var(--text-dim);font-size:11px;text-align:center;padding:12px 0;font-style:italic}
+.export-result{background:var(--bg);border:1px solid var(--accent2);border-radius:var(--radius);padding:9px 11px;font-size:11px;color:var(--accent2);word-break:break-all;display:none}
+.export-result.visible{display:block}
+
+/* ── geo coordinate readout ── */
+#coord-readout{
+  position:absolute;bottom:12px;right:14px;z-index:30;
+  display:none;align-items:center;gap:8px;
+  padding:5px 11px;border-radius:99px;
+  background:var(--bg2);border:1px solid var(--border);
+  font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
+  pointer-events:none;white-space:nowrap;
+  box-shadow:0 2px 10px rgba(0,0,0,.4);
+}
+#coord-readout.visible{display:flex}
+#coord-readout .coord-px{color:var(--text-dim)}
+#coord-readout .coord-sep{color:var(--border-hi)}
+#coord-readout .coord-geo{color:var(--accent2)}
+</style>
+</head>
+<body>
+
+<!-- Welcome modal -->
+<div id="welcome-modal">
+  <div class="welcome-box">
+    <div class="welcome-logo"><div class="welcome-logo-dot"></div>FRAN3</div>
+    <div class="welcome-sub">Choose how you want to work today</div>
+    <div class="mode-cards">
+      <div class="mode-card selected" id="mode-single" onclick="selectMode('single')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <div class="mode-card-title">Single Image</div>
+        <div class="mode-card-desc">Upload one image and label it</div>
+      </div>
+      <div class="mode-card" id="mode-folder" onclick="selectMode('folder')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <div class="mode-card-title">Folder Session</div>
+        <div class="mode-card-desc">Label all images in a folder, one by one</div>
+      </div>
+    </div>
+    <div id="folder-path-wrap">
+      <label class="field-label">Folder path</label>
+      <div class="folder-path-row">
+        <input type="text" id="modal-folder-path" placeholder="/path/to/your/images">
+        <button class="modal-browse-btn" onclick="document.getElementById('folder-input').click()">Browse…</button>
+        <input type="file" id="folder-input" webkitdirectory multiple onchange="onFolderBrowse(this)">
+      </div>
+      <div class="modal-folder-hint">Enter the folder path directly, or use Browse to pick it.</div>
+    </div>
+    <button class="welcome-start-btn" id="welcome-start-btn" onclick="startSession()">Start →</button>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div id="loading-overlay"><div class="spinner"></div><div class="loading-text" id="loading-text">Processing…</div></div>
+
+<!-- Context menu -->
+<div id="ctx-menu">
+  <div class="ctx-header">
+    <div class="ctx-mask-title"><div class="ctx-mask-swatch" id="ctx-swatch"></div><span id="ctx-title">Mask 0</span></div>
+    <div class="ctx-score" id="ctx-score"></div>
+  </div>
+  <div class="ctx-footer" style="border-bottom:1px solid var(--border);margin-bottom:6px;padding-bottom:6px">
+    <button class="ctx-footer-btn edit-btn" id="ctx-edit-brush">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.37 2.63 14 7l-1.59-1.59-5.03 7.28 3.1 3.1 7.28-5.03L16.17 9l4.37-4.37z"/><path d="M2 22c0-3.31 2.69-6 6-6"/></svg>Edit with brush
+    </button>
+    <button class="ctx-footer-btn" id="ctx-edit-eraser" style="--hover-col:rgba(255,77,109,.1);--hover-text:var(--danger)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16l11.07-11.07a1.5 1.5 0 0 1 2.12 0L20 8.86a1.5 1.5 0 0 1 0 2.12L14.12 17H20v3z"/></svg>Edit with eraser
+    </button>
+    <button class="ctx-footer-btn danger" id="ctx-delete-mask">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Delete mask
+    </button>
+  </div>
+  <div class="ctx-label">Assign species</div>
+  <div class="ctx-species-list" id="ctx-species-list"></div>
+  <div class="ctx-footer">
+    <button class="ctx-footer-btn danger" id="ctx-unassign">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Remove assignment
+    </button>
+    <button class="ctx-footer-btn" id="ctx-close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Close
+    </button>
+  </div>
+</div>
+
+<div id="brush-cursor"></div>
+<div id="toast"></div>
+
+<div id="root">
+  <header>
+    <div class="logo"><div class="logo-dot"></div>FRAN3</div>
+
+    <!-- Folder navigation -->
+    <div id="nav-controls">
+      <button class="nav-btn" id="nav-prev" onclick="navGo(-1)" title="Previous image (←)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span id="nav-counter">1 / 1</span>
+      <button class="nav-btn" id="nav-next" onclick="navGo(1)" title="Next image (→)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <!-- Progress -->
+    <div id="progress-wrap">
+      <div id="progress-label">0 / 0 labelled</div>
+      <div id="progress-bar-bg"><div id="progress-bar-fill" style="width:0%"></div></div>
+    </div>
+
+    <div class="header-sep"></div>
+    <div id="edit-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Editing Mask <span id="edit-banner-id">0</span>
+    </div>
+    <div id="status-bar">Ready</div>
+  </header>
+
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <div class="tool-group">
+      <button class="tool-btn active-box" id="tool-box" onclick="setTool('box')" title="Draw box prompt (V)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>Box
+      </button>
+      <button class="tool-btn" id="tool-brush" onclick="setTool('brush')" title="Paint brush (B)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.37 2.63 14 7l-1.59-1.59-5.03 7.28 3.1 3.1 7.28-5.03L16.17 9l4.37-4.37zM2 22c0-3.31 2.69-6 6-6 1.1 0 2.06.31 2.93.79l2.2-3.18-2.74-2.74-3.18 2.2C7.69 13.94 8 14.9 8 16c0 3.31-2.69 6-6 6z"/></svg>Brush
+      </button>
+      <button class="tool-btn" id="tool-eraser" onclick="setTool('eraser')" title="Eraser (E)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16l11.07-11.07a1.5 1.5 0 0 1 2.12 0L20 8.86a1.5 1.5 0 0 1 0 2.12L14.12 17H20v3z"/></svg>Eraser
+      </button>
+    </div>
+    <div class="toolbar-sep"></div>
+    <div id="box-mode-group" class="tool-group" style="transition:opacity var(--transition)">
+      <button class="toggle-btn active-pos" id="btn-pos" onclick="setBoxMode('positive')">+ Positive</button>
+      <button class="toggle-btn" id="btn-neg" onclick="setBoxMode('negative')">− Negative</button>
+    </div>
+    <div class="brush-size-group" id="brush-size-group">
+      <label>Brush size</label>
+      <input type="range" id="brush-size-slider" min="2" max="80" value="20" oninput="updateBrushSize(this.value)">
+      <span id="brush-size-val" class="range-val">20</span>
+    </div>
+    <div class="edit-target-group" id="edit-target-group">
+      <label>Editing mask</label>
+      <select id="edit-mask-select" onchange="setEditMask(parseInt(this.value))">
+        <option value="-1">— select —</option>
+      </select>
+    </div>
+    <div class="toolbar-sep" id="sep-edit" style="opacity:0;transition:opacity var(--transition)"></div>
+    <button id="undo-btn" onclick="undoStroke()" title="Undo (Ctrl+Z)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>Undo
+    </button>
+    <button id="commit-btn" onclick="commitEdits()">Save edits</button>
+    <div class="toolbar-sep"></div>
+    <div class="tool-group">
+      <button class="tool-btn" id="zoom-in-btn"  onclick="zoomBy(1.25)" title="Zoom in (+)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>+
+      </button>
+      <button class="tool-btn" id="zoom-out-btn" onclick="zoomBy(0.8)" title="Zoom out (-)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>−
+      </button>
+      <button class="tool-btn" id="zoom-reset-btn" onclick="zoomReset()" title="Reset zoom (0)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      </button>
+      <span id="zoom-label" style="font-size:10px;color:var(--text-muted);min-width:34px;text-align:center;padding:0 4px">100%</span>
+    </div>
+  </div><!-- /#toolbar -->
+
+  <!-- Left sidebar -->
+  <div id="sidebar">
+
+    <!-- Single-mode source -->
+    <div class="section" id="sec-source">
+      <div class="section-head" onclick="toggleSection('sec-source')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Image Source
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body">
+        <div id="drop-zone" onclick="document.getElementById('file-input').click()"
+             ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div>Drop image here<br><span style="color:var(--text-dim);font-size:11px">or click to browse</span></div>
+        </div>
+        <input type="file" id="file-input" accept="image/*" onchange="uploadFile(this.files[0])">
+        <label class="field-label" style="margin-top:6px">Geo-metadata JSON <span style="color:var(--text-dim)">(optional)</span></label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="file" id="json-input" accept=".json,application/json" onchange="uploadGeoJson(this)" style="display:none">
+          <button class="btn btn-secondary" style="flex:1;font-size:11px" onclick="document.getElementById('json-input').click()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Upload .json
+          </button>
+          <button class="btn btn-secondary" style="padding:7px 9px" onclick="clearJson()" title="Remove JSON">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div id="json-badge" style="display:none;font-size:10px;color:var(--accent2);background:rgba(0,212,170,.08);border:1px solid var(--accent2);border-radius:6px;padding:4px 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+        <button id="geo-info-btn" class="btn btn-secondary btn-full" style="display:none;font-size:11px;margin-top:2px" onclick="showGeoInfo()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Verify corners &amp; format
+        </button>
+        <div id="geo-info-box" style="display:none;font-size:10px;font-family:var(--font-mono);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 9px;line-height:1.9;word-break:break-all"></div>
+        <div style="font-size:10px;color:var(--text-dim);line-height:1.6;margin-top:4px">
+          Expected JSON keys: <code style="color:var(--text-muted)">crs</code>, and either
+          <code style="color:var(--text-muted)">pixel_size_x/y</code> + <code style="color:var(--text-muted)">origin_x/y</code> <em>(recommended)</em>,
+          or <code style="color:var(--text-muted)">transform</code> array +
+          <code style="color:var(--text-muted)">"transform_type":"gdal"</code> /
+          <code style="color:var(--text-muted)">"rasterio"</code>.
+        </div>
+        <label class="field-label">Or load from URL</label>
+        <input type="url" id="url-input" placeholder="https://…">
+        <button class="btn btn-secondary btn-full" onclick="loadUrl()">Load URL</button>
+      </div>
+    </div>
+
+    <!-- Folder filmstrip -->
+    <div class="section" id="filmstrip-section">
+      <div class="section-head" onclick="toggleSection('filmstrip-section')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span id="filmstrip-title">Images</span>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body" style="padding:8px">
+        <div id="filmstrip"></div>
+      </div>
+    </div>
+
+    <!-- Prompts -->
+    <div class="section" id="sec-prompts">
+      <div class="section-head" onclick="toggleSection('sec-prompts')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Prompts
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body">
+        <label class="field-label">What should the SAM3 model look for?</label>
+        <input type="text" id="text-prompt-input" placeholder='"trees", "cat"…' onkeydown="if(event.key==='Enter')runTextPrompt()">
+        <button class="btn btn-primary btn-full" onclick="runTextPrompt()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Segment
+        </button>
+        <label class="field-label" style="margin-top:2px">Confidence</label>
+        <div class="range-row">
+          <input type="range" id="confidence-slider" min="0" max="1" step="0.01" value="0.5"
+                 oninput="document.getElementById('conf-val').textContent=parseFloat(this.value).toFixed(2)"
+                 onchange="setConfidence(this.value)">
+          <span class="range-val" id="conf-val">0.50</span>
+        </div>
+        <button class="btn btn-warn btn-full" onclick="clearImage()">Clear Image</button>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="section" id="sec-export">
+      <div class="section-head" onclick="toggleSection('sec-export')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body">
+        <label class="field-label">Export folder (blank = inside sam3_app folder)</label>
+        <input type="text" id="export-folder" placeholder="/path/to/folder">
+        <button class="btn btn-success btn-full" onclick="exportMasks()">Export PNG + GPKG</button>
+        <div id="export-all-wrap" style="display:none">
+          <button class="btn btn-success btn-full" onclick="exportAll()" style="margin-top:4px">Export All Images</button>
+        </div>
+        <div class="export-result" id="export-result"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <div id="canvas-area" style="position:relative">
+    <div id="coord-readout">
+      <span class="coord-px" id="coord-px">0, 0 px</span>
+      <span class="coord-sep" id="coord-sep" style="display:none">·</span>
+      <span class="coord-geo" id="coord-geo" style="display:none"></span>
+    </div>
+    <div id="canvas-area-inner">
+      <div id="placeholder">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <div>No image loaded</div>
+        <div style="font-size:12px;color:var(--text-dim);font-family:var(--font-mono)">Choose an image on the left to begin</div>
+      </div>
+      <div id="canvas-wrap" style="display:none">
+        <canvas id="neighbor-canvas"></canvas>
+        <canvas id="img-canvas"></canvas>
+        <canvas id="overlay-canvas"></canvas>
+        <canvas id="paint-canvas"></canvas>
+        <canvas id="box-canvas"></canvas>
+        <canvas id="interact-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div id="right-panel">
+    <div class="section" id="sec-species">
+      <div class="section-head" onclick="toggleSection('sec-species')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Classes
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body">
+        <div style="display:flex;gap:6px;align-items:center">
+          <div id="new-species-color-wrap" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);flex-shrink:0;position:relative;cursor:pointer;overflow:hidden;background:#6c63ff" title="Pick colour">
+            <input type="color" id="new-species-color" value="#6c63ff" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:none;padding:0" oninput="document.getElementById('new-species-color-wrap').style.background=this.value">
+          </div>
+          <input type="text" id="species-name-input" placeholder="e.g. Quercus robur" onkeydown="if(event.key==='Enter')addSpecies()" style="flex:1">
+        </div>
+        <button class="btn btn-secondary btn-full" onclick="addSpecies()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add a class
+        </button>
+        <div id="species-list" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"><div class="empty-hint">No classes added yet</div></div>
+      </div>
+    </div>
+    <div class="section" id="sec-masks">
+      <div class="section-head" onclick="toggleSection('sec-masks')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Detected Masks
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="section-body">
+        <div id="mask-list"><div class="empty-hint">No masks yet</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════
+   GLOBAL STATE
+════════════════════════════════════════════════ */
+const S = {
+  // session
+  mode:          'single',    // 'single' | 'folder'
+  folderItems:   [],          // [{name, path, thumb_b64}]
+  folderIdx:     0,
+  // per-image snapshots keyed by path: {maskList, maskPixels, promptedBoxes, speciesAssignments}
+  snapshots:     {},
+
+  // tool
+  tool:          'box',
+  boxMode:       'positive',
+  drawing:       false,
+  boxStart:      null,
+  imageW:        0, imageH:  0,
+  maskList:      [],
+  speciesList:   [],
+  activeMaskId:  null,
+  promptedBoxes: [],
+
+  // zoom
+  zoom: 1.0,
+  brushSize:     20,
+  paintHistory:  [],
+  maskPixels:    {},
+  painting:      false,
+  isolatedMaskId: null,   // mask being solo-viewed
+  _hoverMaskId:   null,   // mask card being hovered (dims others)
+  _canvasHoverMaskId: null, // mask under mouse cursor on canvas
+  frozenMasks:    new Set(), // mask IDs frozen from SAM re-segmentation
+  _lastImageFile: null,   // last File object loaded (for re-upload after clear)
+  _lastImageUrl:  null,   // last URL loaded (fallback)
+  _lastImagePath: null,   // last server-side path loaded (folder mode)
+  geoTransform:   null,   // {a,b,c,d,e,f} affine pixel→geo, or null
+};
+
+/* ════════════════════════════════════════════════
+   DOM
+════════════════════════════════════════════════ */
+const imgCanvas      = document.getElementById('img-canvas');
+const overlayCanvas  = document.getElementById('overlay-canvas');
+const paintCanvas    = document.getElementById('paint-canvas');
+const boxCanvas      = document.getElementById('box-canvas');
+const interactCanvas = document.getElementById('interact-canvas');
+const neighborCanvas = document.getElementById('neighbor-canvas');
+const canvasWrap     = document.getElementById('canvas-wrap');
+const placeholder    = document.getElementById('placeholder');
+const ctxMenu        = document.getElementById('ctx-menu');
+const statusBar      = document.getElementById('status-bar');
+const loadingOv      = document.getElementById('loading-overlay');
+const brushCursor    = document.getElementById('brush-cursor');
+
+const imgCtx      = imgCanvas.getContext('2d');
+const overlayCtx  = overlayCanvas.getContext('2d');
+const paintCtx    = paintCanvas.getContext('2d');
+const boxCtx      = boxCanvas.getContext('2d');
+const interactCtx = interactCanvas.getContext('2d');
+const neighborCtx = neighborCanvas.getContext('2d');
+
+/* ════════════════════════════════════════════════
+   UTILITIES
+════════════════════════════════════════════════ */
+function setStatus(msg,type=''){statusBar.textContent=msg;statusBar.className=type}
+function loading(on,msg='Processing…'){document.getElementById('loading-text').textContent=msg;loadingOv.classList.toggle('visible',on)}
+let _tt;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2800)}
+function toggleSection(id){document.getElementById(id).classList.toggle('collapsed')}
+async function api(ep,payload=null,method='POST'){
+  const opts={method,headers:{}};
+  if(payload instanceof FormData){opts.body=payload}
+  else if(payload){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(payload)}
+  return (await fetch('/api/'+ep,opts)).json();
+}
+function rgbToHex(col){return '#'+col.map(v=>v.toString(16).padStart(2,'0')).join('')}
+
+/* ════════════════════════════════════════════════
+   WELCOME MODAL
+════════════════════════════════════════════════ */
+let _selectedMode = 'single';
+function selectMode(m){
+  _selectedMode = m;
+  document.getElementById('mode-single').classList.toggle('selected', m==='single');
+  document.getElementById('mode-folder').classList.toggle('selected', m==='folder');
+  document.getElementById('folder-path-wrap').classList.toggle('visible', m==='folder');
+}
+function onFolderBrowse(inp){
+  if(!inp.files.length) return;
+  const rel = inp.files[0].webkitRelativePath;
+  document.getElementById('modal-folder-path').value = rel.split('/')[0];
+  // Keep ALL files (images + companion JSONs); pairing happens in startFolderSessionFromFiles
+  window._browseFiles = Array.from(inp.files);
+}
+async function startSession(){
+  if(_selectedMode==='folder'){
+    const pathVal = document.getElementById('modal-folder-path').value.trim();
+    // If user browsed, use those files directly
+    if(window._browseFiles && window._browseFiles.length){
+      await startFolderSessionFromFiles(window._browseFiles);
+    } else if(pathVal){
+      await startFolderSessionFromPath(pathVal);
+    } else {
+      toast('Enter a folder path or use Browse');
+      return;
+    }
+  } else {
+    document.getElementById('welcome-modal').classList.add('hidden');
+    S.mode='single';
+  }
+}
+
+/* ════════════════════════════════════════════════
+   FOLDER SESSION — from filesystem path
+════════════════════════════════════════════════ */
+async function startFolderSessionFromPath(folderPath){
+  loading(true,'Scanning folder…');
+  const r = await api('scan_folder',{folder:folderPath});
+  loading(false);
+  if(r.error){toast('Error: '+r.error);return}
+  S.mode='folder';
+  S.folderItems = r.items;
+  S.folderIdx   = 0;
+  S.snapshots   = {};
+  document.getElementById('welcome-modal').classList.add('hidden');
+  setupFolderUI();
+  await loadFolderImage(0);
+}
+
+/* ════════════════════════════════════════════════
+   FOLDER SESSION — from browser file picker
+════════════════════════════════════════════════ */
+async function startFolderSessionFromFiles(files){
+  const IMAGE_EXTS = /\.(png|jpg|jpeg|tif|tiff|bmp|webp)$/i;
+  const imageFiles = files.filter(f => IMAGE_EXTS.test(f.name));
+  const jsonFiles  = files.filter(f => /\.json$/i.test(f.name));
+
+  // Build lookup: bare image base-name → companion JSON File
+  // Accepts both "<name>_geo.json" and "<name>.json", preferring the _geo suffix
+  const jsonByBase = {};
+  for(const jf of jsonFiles){
+    const base = jf.name.replace(/_geo\.json$/i, '').replace(/\.json$/i, '');
+    if(!jsonByBase[base]) jsonByBase[base] = jf;
+  }
+
+  imageFiles.sort((a,b) => a.name.localeCompare(b.name));
+  S.mode='folder';
+
+  // Build folderItems — read grid fields from paired JSON files if available
+  const itemPromises = imageFiles.map(f => {
+    const base = f.name.replace(/\.[^.]+$/, '');
+    const geoFile = jsonByBase[base] ?? null;
+    const item = {name:f.name, path:f.name, _file:f, _geoFile:geoFile, thumb_b64:''};
+    if(!geoFile) return Promise.resolve(item);
+    // Read the JSON to get tile_row, tile_col, tiles_per_row
+    return new Promise(resolve => {
+      const r = new FileReader();
+      r.onload = e => {
+        try {
+          const gj = JSON.parse(e.target.result);
+          for(const k of ['tile_row','tile_col','tiles_per_row','tiles_per_col','tile_id']){
+            if(gj[k] != null) item[k] = gj[k];
+          }
+        } catch(_){}
+        resolve(item);
+      };
+      r.onerror = () => resolve(item);
+      r.readAsText(geoFile);
+    });
+  });
+
+  S.folderItems = await Promise.all(itemPromises);
+  S.folderIdx=0; S.snapshots={};
+  document.getElementById('welcome-modal').classList.add('hidden');
+  setupFolderUI();
+  imageFiles.forEach((f,i)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const oc=document.createElement('canvas');
+        oc.width=120;oc.height=90;
+        const ox=oc.getContext('2d');
+        const scale=Math.min(120/img.width,90/img.height);
+        const w=img.width*scale,h=img.height*scale;
+        ox.drawImage(img,(120-w)/2,(90-h)/2,w,h);
+        S.folderItems[i].thumb_b64=oc.toDataURL('image/jpeg',.7).split(',')[1];
+        renderFilmstrip();
+      };
+      img.src=e.target.result;
+      S.folderItems[i]._dataUrl=e.target.result;
+    };
+    reader.readAsDataURL(f);
+  });
+  await loadFolderImage(0);
+}
+
+function setupFolderUI(){
+  document.getElementById('sec-source').style.display='none';
+  document.getElementById('filmstrip-section').classList.add('visible');
+  document.getElementById('nav-controls').classList.add('visible');
+  document.getElementById('progress-wrap').classList.add('visible');
+  document.getElementById('export-all-wrap').style.display='block';
+  document.getElementById('filmstrip-title').textContent=
+    `${S.folderItems.length} image${S.folderItems.length!==1?'s':''}`;
+}
+
+/* ════════════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════════════ */
+async function navGo(delta){
+  const next = S.folderIdx + delta;
+  if(next<0||next>=S.folderItems.length) return;
+  // Snapshot current image state
+  snapshotCurrent();
+  await loadFolderImage(next);
+}
+
+function snapshotCurrent(){
+  const key = S.folderItems[S.folderIdx].path;
+  S.snapshots[key]={
+    maskList:      JSON.parse(JSON.stringify(S.maskList)),
+    maskPixels:    {...S.maskPixels},  // ImageData refs
+    promptedBoxes: JSON.parse(JSON.stringify(S.promptedBoxes)),
+    // species assignments per mask
+    assignments: Object.fromEntries(S.maskList.map(m=>[m.mask_id, m.species_id])),
+  };
+}
+
+async function loadFolderImage(idx){
+  S.folderIdx=idx;
+  const item=S.folderItems[idx];
+  loading(true,`Loading ${item.name}…`);
+
+  let r;
+  if(item._file){
+    // Browser-picked file — also upload companion JSON if paired at session start
+    const fd=new FormData();
+    fd.append('image',item._file);
+    if(item._geoFile) fd.append('json', item._geoFile);
+    r=await api('upload',fd);
+    S._lastImageFile=item._file; S._lastImageUrl=null;
+  } else {
+    // Server-side path — must pass geo_path so each tile's affine is loaded
+    r=await api('load_path',{path:item.path, geo_path: item.geo_path ?? null});
+    S._lastImageFile=null; S._lastImageUrl=null;
+    S._lastImagePath=item.path;
+  }
+
+  loading(false);
+  if(r.error){setStatus('Error: '+r.error,'error');return}
+
+  S.imageW=r.width; S.imageH=r.height;
+  setCanvasSize(r.width,r.height); showCanvas();
+  zoomFit();
+  drawImageB64(r.image_b64);
+
+  // Refresh geo transform for this tile (each tile may have its own affine)
+  _fetchGeoTransform();
+
+  // Reset all hover/edit state before restoring
+  S.isolatedMaskId=null; S._hoverMaskId=null; S._canvasHoverMaskId=null;
+  S.editMaskId=-1; S.paintHistory=[]; S.frozenMasks=new Set();
+
+  // Restore or reset state
+  const key=item.path;
+  if(S.snapshots[key]){
+    const snap=S.snapshots[key];
+    S.maskList      = snap.maskList;
+    S.maskPixels    = snap.maskPixels;
+    S.promptedBoxes = snap.promptedBoxes;
+    // Restore species assignments
+    S.maskList.forEach(m=>{ m.species_id=snap.assignments[m.mask_id]??null; });
+    reCompositeOverlay();
+    drawPromptedBoxes();
+  } else {
+    S.maskList=[]; S.maskPixels={}; S.promptedBoxes=[];
+  }
+  paintCtx.clearRect(0,0,r.width,r.height);
+
+  renderMaskList(); updateEditTargetSelect();
+  updateNavUI();
+  renderFilmstrip();
+  setStatus(`${item.name} · ${r.width}×${r.height}`,'success');
+  drawNeighbors();
+}
+
+function updateNavUI(){
+  const n=S.folderItems.length, i=S.folderIdx;
+  document.getElementById('nav-counter').textContent=`${i+1} / ${n}`;
+  document.getElementById('nav-prev').disabled=i===0;
+  document.getElementById('nav-next').disabled=i===n-1;
+  // progress
+  const done=S.folderItems.filter((_,j)=>{
+    const key=S.folderItems[j].path;
+    const snap=S.snapshots[key];
+    return snap && snap.maskList.some(m=>m.species_id!=null);
+  }).length;
+  const inprog=S.folderItems.filter((_,j)=>{
+    const key=S.folderItems[j].path;
+    const snap=S.snapshots[key];
+    return snap && snap.maskList.length>0 && !snap.maskList.some(m=>m.species_id!=null);
+  }).length;
+  document.getElementById('progress-label').textContent=`${done} / ${n} labelled`;
+  document.getElementById('progress-bar-fill').style.width=`${n?done/n*100:0}%`;
+}
+
+function getItemStatus(j){
+  // current image: use live state
+  if(j===S.folderIdx){
+    if(S.maskList.length===0) return 'todo';
+    if(S.maskList.some(m=>m.species_id!=null)) return 'done';
+    return 'inprog';
+  }
+  const key=S.folderItems[j].path;
+  const snap=S.snapshots[key];
+  if(!snap||snap.maskList.length===0) return 'todo';
+  if(snap.maskList.some(m=>m.species_id!=null)) return 'done';
+  return 'inprog';
+}
+
+function renderFilmstrip(){
+  const el=document.getElementById('filmstrip');
+  el.innerHTML=S.folderItems.map((item,j)=>{
+    const status=getItemStatus(j);
+    const statusLabel={done:'✓ labelled',inprog:'in progress',todo:'unlabelled'}[status];
+    const thumb=item.thumb_b64
+      ? `<img class="film-thumb" src="data:image/jpeg;base64,${item.thumb_b64}" alt="">`
+      : `<div class="film-thumb-placeholder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+    return `<div class="film-card ${status} ${j===S.folderIdx?'active':''}" onclick="filmJump(${j})">
+      ${thumb}
+      <div class="film-info">
+        <div class="film-name">${item.name}</div>
+        <div class="film-status ${status}">${statusLabel}</div>
+      </div>
+      <div class="film-idx">${j+1}</div>
+    </div>`;
+  }).join('');
+  // scroll active into view
+  const active=el.querySelector('.film-card.active');
+  if(active) active.scrollIntoView({block:'nearest'});
+}
+
+async function filmJump(j){
+  if(j===S.folderIdx) return;
+  snapshotCurrent();
+  await loadFolderImage(j);
+}
+
+/* ════════════════════════════════════════════════
+   EXPORT ALL
+════════════════════════════════════════════════ */
+async function exportAll(){
+  snapshotCurrent();
+
+  // Resolve output folder ONCE — all images must land in the same directory.
+  // If blank, auto-generate and write back so the user can see the path.
+  let folder = document.getElementById('export-folder').value.trim();
+  if(!folder){
+    const ts = new Date().toISOString().slice(0,19).replace(/:/g,'-');
+    folder = `sam3_exports_${ts}`;
+    document.getElementById('export-folder').value = folder;
+  }
+
+  const toExport = Object.entries(S.snapshots).filter(([,snap])=>snap.maskList.length>0);
+  const total = toExport.length;
+  if(!total){ toast('Nothing labelled to export'); return; }
+  let done = 0;
+  loading(true,`Exporting 0 / ${total}…`);
+
+  for(const [path,snap] of toExport){
+    const item = S.folderItems.find(it=>it.path===path);
+    if(!item) continue;
+
+    // Reload image on server AND restore its correct geo transform
+    if(item._file){
+      const fd=new FormData();
+      fd.append('image',item._file);
+      if(item._geoFile) fd.append('json', item._geoFile);
+      await api('upload',fd);
+    } else {
+      await api('load_path',{path, geo_path: item.geo_path ?? null});
+    }
+
+    // Restore mask pixel data so the server registry is populated
+    for(const m of snap.maskList){
+      const pixels=snap.maskPixels[m.mask_id];
+      if(!pixels) continue;
+      const oc=document.createElement('canvas');
+      oc.width=pixels.width; oc.height=pixels.height;
+      const ox=oc.getContext('2d');
+      const gray=new Uint8ClampedArray(pixels.width*pixels.height*4);
+      for(let i=0;i<pixels.data.length;i+=4){
+        const on=pixels.data[i+3]>0?255:0;
+        gray[i]=on;gray[i+1]=on;gray[i+2]=on;gray[i+3]=255;
+      }
+      ox.putImageData(new ImageData(gray,pixels.width,pixels.height),0,0);
+      const mask_b64=oc.toDataURL('image/png').split(',')[1];
+      await api('update_mask',{
+        mask_id: m.mask_id,
+        mask_b64,
+        meta:{species_id:snap.assignments[m.mask_id]??null, score:m.score, color:m.color},
+      });
+    }
+    for(const [mid,sid] of Object.entries(snap.assignments)){
+      await api('assign_species',{mask_id:parseInt(mid),species_id:sid});
+    }
+
+    // All images go into the same resolved folder
+    await api('export',{folder});
+    done++;
+    loading(true,`Exporting ${done} / ${total}…`);
+  }
+
+  loading(false);
+  const res=document.getElementById('export-result');
+  res.className='export-result visible';
+  res.textContent=`✓ ${done} image${done!==1?'s':''} exported → ${folder}`;
+  toast(`Exported ${done} image(s)`);
+}
+
+/* ════════════════════════════════════════════════
+   CANVAS SETUP
+════════════════════════════════════════════════ */
+const PAD = 140; // pixels of each neighbour shown as context padding
+
+function setCanvasSize(w,h){
+  const isFolder = S.mode === 'folder';
+  const pad = isFolder ? PAD : 0;
+
+  // canvas-wrap is sized to include the padding on all sides.
+  // The neighbor-canvas fills it entirely (top-left at 0,0).
+  // All interactive canvases are offset by pad,pad inside canvas-wrap.
+  canvasWrap.style.width  = (w + pad*2)+'px';
+  canvasWrap.style.height = (h + pad*2)+'px';
+
+  neighborCanvas.width  = w + pad*2;
+  neighborCanvas.height = h + pad*2;
+  neighborCanvas.style.width  = (w + pad*2)+'px';
+  neighborCanvas.style.height = (h + pad*2)+'px';
+  neighborCanvas.style.left = '0';
+  neighborCanvas.style.top  = '0';
+  neighborCtx.clearRect(0, 0, w + pad*2, h + pad*2);
+
+  [imgCanvas,overlayCanvas,paintCanvas,boxCanvas,interactCanvas].forEach(c=>{
+    c.width=w; c.height=h; c.style.width=w+'px'; c.style.height=h+'px';
+    c.style.left = pad+'px';
+    c.style.top  = pad+'px';
+  });
+  imgCtx.clearRect(0,0,w,h);
+  overlayCtx.clearRect(0,0,w,h);
+  paintCtx.clearRect(0,0,w,h);
+  boxCtx.clearRect(0,0,w,h);
+}
+function canvasPos(e){
+  const r=interactCanvas.getBoundingClientRect();
+  const scaleX = r.width  / interactCanvas.width;
+  const scaleY = r.height / interactCanvas.height;
+  // interactCanvas is at (PAD,PAD) inside canvas-wrap in folder mode,
+  // so no extra adjustment needed — coords are relative to interactCanvas directly.
+  return{x:(e.clientX-r.left)/scaleX, y:(e.clientY-r.top)/scaleY};
+}
+
+/* ════════════════════════════════════════════════
+   ZOOM
+════════════════════════════════════════════════ */
+function applyZoom(){
+  const z=S.zoom;
+  const pad = S.mode==='folder' ? PAD : 0;
+  const scaledW = Math.round((S.imageW + pad*2) * z);
+  const scaledH = Math.round((S.imageH + pad*2) * z);
+  canvasWrap.style.transform=`scale(${z})`;
+  canvasWrap.style.transformOrigin='top left';
+  // Give the inner container an explicit size equal to the post-scale footprint so
+  // the scroll container knows how far to scroll in every direction.
+  const inner = canvasWrap.parentElement;
+  inner.style.width  = (scaledW + 48) + 'px';
+  inner.style.height = (scaledH + 48) + 'px';
+  inner.style.minWidth  = '';
+  inner.style.minHeight = '';
+  document.getElementById('zoom-label').textContent=Math.round(z*100)+'%';
+  updateBrushCursorStyle();
+}
+function zoomBy(factor){
+  S.zoom=Math.min(8, Math.max(0.1, S.zoom*factor));
+  applyZoom();
+}
+function zoomReset(){S.zoom=1;applyZoom();}
+function zoomFit(){
+  if(!S.imageW||!S.imageH) return;
+  const pad = S.mode==='folder' ? PAD : 0;
+  const area = document.getElementById('canvas-area');
+  const availW = area.clientWidth  - 48;
+  const availH = area.clientHeight - 48;
+  const imgW = S.imageW + pad*2;
+  const imgH = S.imageH + pad*2;
+  S.zoom = Math.min(1, availW/imgW, availH/imgH);
+  applyZoom();
+  // Scroll to top-left so the full image (including padding) is visible
+  area.scrollLeft = 0;
+  area.scrollTop  = 0;
+}
+
+// Mouse-wheel zoom (Ctrl+wheel OR plain wheel on canvas area)
+document.getElementById('canvas-area').addEventListener('wheel',e=>{
+  if(!S.imageW) return;
+  e.preventDefault();
+  const factor = e.deltaY<0 ? 1.1 : 0.9;
+  zoomBy(factor);
+},{passive:false});
+
+// Wheel zoom handled by canvas-area wheel event above
+
+/* ════════════════════════════════════════════════
+   NEIGHBOUR CONTEXT PADDING
+════════════════════════════════════════════════ */
+// Each entry: dr/dc = offset from current tile in grid, pos = which edge of the
+// NEIGHBOUR faces the current tile (so we crop that edge from the neighbour).
+const NEIGHBOR_DEFS = [
+  {dr:-1, dc:-1, pos:'tl'},
+  {dr:-1, dc: 0, pos:'top'},
+  {dr:-1, dc:+1, pos:'tr'},
+  {dr: 0, dc:-1, pos:'left'},
+  {dr: 0, dc:+1, pos:'right'},
+  {dr:+1, dc:-1, pos:'bl'},
+  {dr:+1, dc: 0, pos:'bottom'},
+  {dr:+1, dc:+1, pos:'br'},
+];
+
+// Where each neighbour strip lands on the neighborCanvas.
+// neighborCanvas is (W+2*PAD)×(H+2*PAD); the main tile occupies
+// pixels [PAD..PAD+W) × [PAD..PAD+H).
+function neighborDestRect(pos, W, H){
+  switch(pos){
+    case 'tl':     return {dx:0,       dy:0,       dw:PAD, dh:PAD};
+    case 'top':    return {dx:PAD,     dy:0,       dw:W,   dh:PAD};
+    case 'tr':     return {dx:PAD+W,   dy:0,       dw:PAD, dh:PAD};
+    case 'left':   return {dx:0,       dy:PAD,     dw:PAD, dh:H};
+    case 'right':  return {dx:PAD+W,   dy:PAD,     dw:PAD, dh:H};
+    case 'bl':     return {dx:0,       dy:PAD+H,   dw:PAD, dh:PAD};
+    case 'bottom': return {dx:PAD,     dy:PAD+H,   dw:W,   dh:PAD};
+    case 'br':     return {dx:PAD+W,   dy:PAD+H,   dw:PAD, dh:PAD};
+  }
+}
+
+// Which crop of the NEIGHBOUR's image to take (the edge that faces us).
+function neighborSrcCrop(pos, W, H){
+  switch(pos){
+    case 'tl':     return {sx:W-PAD, sy:H-PAD, sw:PAD, sh:PAD};
+    case 'top':    return {sx:0,     sy:H-PAD, sw:W,   sh:PAD};
+    case 'tr':     return {sx:0,     sy:H-PAD, sw:PAD, sh:PAD};
+    case 'left':   return {sx:W-PAD, sy:0,     sw:PAD, sh:H};
+    case 'right':  return {sx:0,     sy:0,     sw:PAD, sh:H};
+    case 'bl':     return {sx:W-PAD, sy:0,     sw:PAD, sh:PAD};
+    case 'bottom': return {sx:0,     sy:0,     sw:W,   sh:PAD};
+    case 'br':     return {sx:0,     sy:0,     sw:PAD, sh:PAD};
+  }
+}
+
+async function drawNeighbors(){
+  const W = S.imageW, H = S.imageH;
+  neighborCtx.clearRect(0, 0, W + PAD*2, H + PAD*2);
+  if(S.mode !== 'folder' || !W || !H) return;
+
+  const cur = S.folderItems[S.folderIdx];
+
+  // Resolve grid position — use tile_row/tile_col if present (--tile mode),
+  // otherwise infer from linear index assuming row-major order.
+  let curRow, curCol, tilesPerRow;
+  if(cur.tile_row != null){
+    curRow = cur.tile_row; curCol = cur.tile_col;
+    tilesPerRow = cur.tiles_per_row ?? S.folderItems.length;
+  } else {
+    const withGrid = S.folderItems.find(it => it.tiles_per_row != null);
+    tilesPerRow = withGrid ? withGrid.tiles_per_row : S.folderItems.length;
+    curRow = Math.floor(S.folderIdx / tilesPerRow);
+    curCol = S.folderIdx % tilesPerRow;
+  }
+
+  // Build grid lookup (row,col) → item
+  const byGrid = {};
+  S.folderItems.forEach((it, idx) => {
+    const r = it.tile_row != null ? it.tile_row : Math.floor(idx / tilesPerRow);
+    const c = it.tile_col != null ? it.tile_col : idx % tilesPerRow;
+    byGrid[`${r},${c}`] = it;
+  });
+
+  for(const {dr, dc, pos} of NEIGHBOR_DEFS){
+    const nb = byGrid[`${curRow+dr},${curCol+dc}`];
+    if(!nb) continue;
+
+    // Get the neighbour's full image — from dataUrl (browser session)
+    // or via server API (path-based session).
+    let imgSrc = null;
+    if(nb._dataUrl){
+      imgSrc = nb._dataUrl;
+    } else if(nb.path && !nb._file){
+      try {
+        const d = await api('neighbor_thumb', {
+          path: nb.path,
+          pad_px: PAD,
+          position: pos,
+          export_folder: document.getElementById('export-folder')?.value.trim()||'',
+        });
+        if(!d.error && d.image_b64){
+          // Server already cropped the strip — draw it directly.
+          const dest = neighborDestRect(pos, W, H);
+          await _drawImg('data:image/png;base64,'+d.image_b64,
+                         dest.dx, dest.dy, dest.dw, dest.dh);
+          // maskPixels are in full-image space, so pass the real src crop for centroid mapping.
+          _overlayNeighborMasks(nb, W, H, neighborSrcCrop(pos, W, H), dest);
+          _drawSeam(pos, W, H);
+          continue;
+        }
+      } catch(e){ continue; }
+    }
+    if(!imgSrc) continue;
+
+    // Draw the crop of the full neighbour image that faces the current tile.
+    const src  = neighborSrcCrop(pos, W, H);
+    const dest = neighborDestRect(pos, W, H);
+    await _drawImg(imgSrc, dest.dx, dest.dy, dest.dw, dest.dh,
+                   src.sx, src.sy, src.sw, src.sh);
+
+    // Overlay classified masks onto the padding strip.
+    _overlayNeighborMasks(nb, W, H, src, dest);
+    _drawSeam(pos, W, H);
+  }
+}
+
+// Overlay classified masks from a neighbour's snapshot onto the padding strip.
+// src  = {sx,sy,sw,sh} crop within the full neighbour image
+// dest = {dx,dy,dw,dh} destination rect on neighborCanvas
+function _overlayNeighborMasks(nb, W, H, src, dest){
+  const snap = S.snapshots[nb.path ?? nb.name];
+  if(!snap || !snap.maskList.length) return;
+
+  for(const m of snap.maskList){
+    const px = snap.maskPixels[m.mask_id];
+    if(!px) continue;
+
+    // Determine fill colour: species colour if assigned, else original mask colour.
+    let fr, fg, fb;
+    const sid = snap.assignments ? snap.assignments[m.mask_id] : m.species_id;
+    if(sid != null){
+      const hex = speciesColor(sid);
+      fr = parseInt(hex.slice(1,3),16);
+      fg = parseInt(hex.slice(3,5),16);
+      fb = parseInt(hex.slice(5,7),16);
+    } else {
+      fr = 120; fg = 122; fb = 140;
+    }
+
+    // Rebuild pixel data: same shape as maskPixels but filled with species/mask colour.
+    const t = new Uint8ClampedArray(px.data.length);
+    for(let i=0;i<px.data.length;i+=4){
+      if(px.data[i+3]>0){ t[i]=fr; t[i+1]=fg; t[i+2]=fb; t[i+3]=180; }
+    }
+    const tmp = document.createElement("canvas");
+    tmp.width = W; tmp.height = H;
+    tmp.getContext("2d").putImageData(new ImageData(t,W,H),0,0);
+
+    neighborCtx.globalAlpha = 0.6;
+    neighborCtx.drawImage(tmp, src.sx, src.sy, src.sw, src.sh,
+                               dest.dx, dest.dy, dest.dw, dest.dh);
+    neighborCtx.globalAlpha = 1;
+
+    // Draw species label pill at the mask centroid if it falls within the visible strip.
+    if(sid != null){
+      const sp = S.speciesList.find(s=>s.id===sid);
+      if(sp){
+        // Compute centroid from full-resolution pixel data.
+        let sumX=0, sumY=0, cnt=0;
+        for(let i=0;i<px.data.length;i+=4){
+          if(px.data[i+3]>0){
+            const pidx=i/4;
+            sumX+=pidx%W; sumY+=Math.floor(pidx/W); cnt++;
+          }
+        }
+        if(cnt>0){
+          const cx=sumX/cnt, cy=sumY/cnt;
+          // Only label if centroid is within the source crop shown in the strip.
+          if(cx>=src.sx && cx<src.sx+src.sw && cy>=src.sy && cy<src.sy+src.sh){
+            const scaleX = dest.dw/src.sw, scaleY = dest.dh/src.sh;
+            const lx = dest.dx + (cx-src.sx)*scaleX;
+            const ly = dest.dy + (cy-src.sy)*scaleY;
+
+            const label = sp.name.length>14 ? sp.name.slice(0,12)+"…" : sp.name;
+            neighborCtx.save();
+            neighborCtx.font = 'bold 9px "DM Mono",monospace';
+            const tw = neighborCtx.measureText(label).width;
+            const px2=4, py2=2;
+            // Pill background in species colour
+            neighborCtx.fillStyle = "rgba("+fr+","+fg+","+fb+",0.88)";
+            neighborCtx.beginPath();
+            neighborCtx.roundRect(lx-tw/2-px2, ly-7-py2, tw+px2*2, 11+py2*2, 4);
+            neighborCtx.fill();
+            // Label text in dark bg colour for contrast
+            neighborCtx.fillStyle = "#0d0e12";
+            neighborCtx.textAlign = "center";
+            neighborCtx.textBaseline = "middle";
+            neighborCtx.fillText(label, lx, ly);
+            neighborCtx.restore();
+          }
+        }
+      }
+    }
+  }
+}
+
+// Draw an image (with optional src crop) into the neighbor canvas at 55% opacity.
+function _drawImg(src, dx, dy, dw, dh, sx, sy, sw, sh){
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      neighborCtx.globalAlpha = 0.55;
+      if(sx != null){
+        neighborCtx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+      } else {
+        neighborCtx.drawImage(img, dx, dy, dw, dh);
+      }
+      neighborCtx.globalAlpha = 1;
+      resolve();
+    };
+    img.onerror = resolve;
+    img.src = src;
+  });
+}
+
+// Draw a faint seam line between the neighbour strip and the main tile.
+function _drawSeam(pos, W, H){
+  neighborCtx.strokeStyle = 'rgba(108,99,255,0.4)';
+  neighborCtx.lineWidth = 1;
+  neighborCtx.beginPath();
+  if(['left','tl','bl'].includes(pos)){
+    neighborCtx.moveTo(PAD, pos==='tl'?PAD:pos==='bl'?PAD+H:PAD);
+    neighborCtx.lineTo(PAD, pos==='tl'?PAD:pos==='bl'?PAD+H+PAD:PAD+H);
+  }
+  if(['right','tr','br'].includes(pos)){
+    neighborCtx.moveTo(PAD+W, pos==='tr'?PAD:pos==='br'?PAD+H:PAD);
+    neighborCtx.lineTo(PAD+W, pos==='tr'?PAD:pos==='br'?PAD+H+PAD:PAD+H);
+  }
+  if(['top','tl','tr'].includes(pos)){
+    neighborCtx.moveTo(pos==='tl'?PAD:pos==='tr'?PAD+W:PAD, PAD);
+    neighborCtx.lineTo(pos==='tl'?PAD:pos==='tr'?PAD+W+PAD:PAD+W, PAD);
+  }
+  if(['bottom','bl','br'].includes(pos)){
+    neighborCtx.moveTo(pos==='bl'?PAD:pos==='br'?PAD+W:PAD, PAD+H);
+    neighborCtx.lineTo(pos==='bl'?PAD:pos==='br'?PAD+W+PAD:PAD+W, PAD+H);
+  }
+  neighborCtx.stroke();
+}
+
+/* ════════════════════════════════════════════════
+   JSON / GEO-METADATA
+════════════════════════════════════════════════ */
+let _pendingJsonFile = null;
+
+async function uploadGeoJson(inp){
+  if(!inp.files.length){ _pendingJsonFile=null; return; }
+  _pendingJsonFile = inp.files[0];
+  // Upload to server immediately — independent of image
+  const fd = new FormData();
+  fd.append('json', _pendingJsonFile);
+  loading(true,'Loading geo JSON…');
+  const r = await api('upload_geo', fd);
+  loading(false);
+  const badge = document.getElementById('json-badge');
+  const box   = document.getElementById('geo-info-box');
+  const btn   = document.getElementById('geo-info-btn');
+  if(r.error){
+    badge.style.display='block'; badge.textContent='⚠ JSON error: '+r.error;
+    badge.style.color='var(--danger)';
+    return;
+  }
+  badge.style.display='block'; badge.style.color='';
+  badge.textContent='📍 '+_pendingJsonFile.name+' · '+r.crs;
+  btn.style.display='';
+  // Auto-show geo info so the user can immediately verify corners & convention
+  box.style.display='none';
+  await showGeoInfo();
+  toast('Geo JSON loaded — verify corners above');
+}
+
+function clearJson(){
+  _pendingJsonFile=null;
+  document.getElementById('json-input').value='';
+  document.getElementById('json-badge').style.display='none';
+  document.getElementById('geo-info-btn').style.display='none';
+  document.getElementById('geo-info-box').style.display='none';
+  api('upload_geo_clear', {});
+  S.geoTransform=null;
+  toast('Geo JSON cleared');
+}
+
+async function showGeoInfo(){
+  const r = await (await fetch('/api/geo_info')).json();
+  const box = document.getElementById('geo-info-box');
+  if(!r.loaded){
+    box.style.display='block';
+    box.textContent='No geo JSON on server. Upload the JSON first.';
+    S.geoTransform=null;
+    return;
+  }
+  // Cache affine coefficients for live coordinate readout
+  const [a,b,c,d,e,f] = r.transform;
+  S.geoTransform={a,b,c,d,e,f,crs:r.crs};
+  const corners = r.corners;
+  // Use enough decimal places to distinguish sub-pixel shifts.
+  // Geographic CRS (degrees) needs ~6 dp; projected (metres) needs ~2 dp.
+  const isGeo = (r.crs||'').toUpperCase().includes('4326') ||
+                (r.transform && Math.abs(r.transform[0]) < 1);
+  const dp = isGeo ? 7 : 2;
+  const fmt = v => (+v).toFixed(dp);
+  const convColor = (r.convention||'').includes('heuristic') ? 'var(--warn)' : 'var(--accent2)';
+  box.style.display='block';
+  box.innerHTML =
+    `<span style="color:var(--accent2)">✓ Active</span>  `+
+    `<span style="color:var(--text-muted)">CRS:</span> ${r.crs}<br>`+
+    `<span style="color:var(--text-muted)">Format:</span> `+
+    `<span style="color:${convColor}">${r.convention||'unknown'}</span><br>`+
+    `<span style="color:var(--text-muted)">pixel_w:</span> ${(r.transform[0]).toExponential(4)} &nbsp;`+
+    `<span style="color:var(--text-muted)">pixel_h:</span> ${(r.transform[4]).toExponential(4)}<br>`+
+    `<span style="color:var(--text-muted)">TL:</span> ${fmt(corners.top_left[0])}, ${fmt(corners.top_left[1])}<br>`+
+    `<span style="color:var(--text-muted)">TR:</span> ${fmt(corners.top_right[0])}, ${fmt(corners.top_right[1])}<br>`+
+    `<span style="color:var(--text-muted)">BL:</span> ${fmt(corners.bottom_left[0])}, ${fmt(corners.bottom_left[1])}<br>`+
+    `<span style="color:var(--text-muted)">BR:</span> ${fmt(corners.bottom_right[0])}, ${fmt(corners.bottom_right[1])}<br>`+
+    (r.convention&&r.convention.includes('heuristic')
+      ? `<span style="color:var(--warn)">⚠ Convention auto-detected — add "transform_type":"gdal" or "rasterio" to your JSON to lock it.</span>`
+      : '');
+}
+function showCanvas(){placeholder.style.display='none';canvasWrap.style.display='inline-block'}
+
+async function _fetchGeoTransform(){
+  try{
+    const r=await (await fetch('/api/geo_info')).json();
+    if(r.loaded && r.transform){
+      const[a,b,c,d,e,f]=r.transform;
+      S.geoTransform={a,b,c,d,e,f,crs:r.crs};
+    } else {
+      S.geoTransform=null;
+    }
+  }catch(_){S.geoTransform=null;}
+}
+
+/* ── coordinate readout on mouse move ── */
+(function(){
+  const readout = document.getElementById('coord-readout');
+  const elPx    = document.getElementById('coord-px');
+  const elSep   = document.getElementById('coord-sep');
+  const elGeo   = document.getElementById('coord-geo');
+
+  interactCanvas.addEventListener('mousemove', e=>{
+    if(!S.imageW) return;
+    const pos = canvasPos(e);
+    const px = Math.floor(pos.x), py = Math.floor(pos.y);
+    if(px<0||py<0||px>=S.imageW||py>=S.imageH){
+      readout.classList.remove('visible'); return;
+    }
+    readout.classList.add('visible');
+    elPx.textContent = `${px}, ${py} px`;
+
+    const gt = S.geoTransform;
+    if(gt){
+      // X = c + col*a + row*b  ;  Y = f + col*d + row*e
+      const gx = gt.c + px*gt.a + py*gt.b;
+      const gy = gt.f + px*gt.d + py*gt.e;
+      // Choose decimal places: geographic degrees need ~6 dp; projected metres ~2 dp
+      const isGeo = (gt.crs||'').toUpperCase().includes('4326') || Math.abs(gt.a)<1;
+      const dp = isGeo ? 6 : 2;
+      elGeo.textContent = `${gx.toFixed(dp)}, ${gy.toFixed(dp)}`;
+      elSep.style.display=''; elGeo.style.display='';
+    } else {
+      elSep.style.display='none'; elGeo.style.display='none';
+    }
+  });
+
+  interactCanvas.addEventListener('mouseleave', ()=>{
+    readout.classList.remove('visible');
+  });
+})();
+
+/* ════════════════════════════════════════════════
+   DRAW HELPERS
+════════════════════════════════════════════════ */
+function drawImageB64(b64){
+  const img=new Image();
+  img.onload=()=>imgCtx.drawImage(img,0,0);
+  img.src='data:image/png;base64,'+b64;
+}
+
+function _resolveColor(m){
+  // Species color when assigned, neutral gray when not.
+  if(m.species_id != null){
+    const hex = speciesColor(m.species_id);
+    return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+  }
+  return [120, 122, 140]; // #787a8c — neutral gray for all unassigned masks
+}
+
+function reCompositeOverlay(){
+  overlayCtx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
+  // Priority: isolatedMaskId > sidebar _hoverMaskId > canvas hover > normal
+  const soloId = S.isolatedMaskId !== null ? S.isolatedMaskId
+               : S._hoverMaskId   !== null ? S._hoverMaskId
+               : S._canvasHoverMaskId !== null ? S._canvasHoverMaskId
+               : null;
+  const W = overlayCanvas.width, H = overlayCanvas.height;
+  S.maskList.forEach(m=>{
+    const pixels=S.maskPixels[m.mask_id];
+    if(!pixels) return;
+    const isSolo = soloId !== null;
+    const isThis = m.mask_id === soloId;
+    const [cr,cg,cb] = _resolveColor(m);
+    const src = pixels.data;
+    const data = new Uint8ClampedArray(src.length);
+
+    for(let i=0;i<src.length;i+=4){
+      if(src[i+3]===0) continue; // transparent — skip
+      if(isSolo && !isThis){
+        // Dim non-focused masks: gray at very low opacity
+        data[i]=120;data[i+1]=122;data[i+2]=140;data[i+3]=28;
+        continue;
+      }
+      // Detect edge pixels within a 2-pixel border for a thicker visible outline
+      const pi = i/4;
+      const px = pi % W, py = Math.floor(pi / W);
+      const E = 3; // edge thickness in pixels
+      let isEdge = false;
+      outer: for(let dy=-E; dy<=E; dy++){
+        for(let dx=-E; dx<=E; dx++){
+          if(dx===0&&dy===0) continue;
+          const nx=px+dx, ny=py+dy;
+          if(nx<0||nx>=W||ny<0||ny>=H||src[((ny*W+nx)*4)+3]===0){isEdge=true;break outer;}
+        }
+      }
+      data[i]=cr; data[i+1]=cg; data[i+2]=cb;
+      data[i+3] = isEdge ? 240 : 140; // thick bright edge, lighter fill
+    }
+    const tmp=document.createElement('canvas');
+    tmp.width=W; tmp.height=H;
+    tmp.getContext('2d').putImageData(new ImageData(data,W,H),0,0);
+    overlayCtx.drawImage(tmp,0,0);
+  });
+  reDrawLabels();
+}
+
+function reDrawLabels(){
+  const cW=overlayCanvas.width, cH=overlayCanvas.height;
+  overlayCtx.font='11px DM Mono,monospace';
+  S.maskList.forEach(m=>{
+    const [x0,y0,x1,y1]=m.box;
+    const [cr,cg,cb]=_resolveColor(m);
+    const col='rgb('+cr+','+cg+','+cb+')';
+    // Clamp box coords to canvas
+    const rx=Math.max(0,Math.min(cW-1,x0));
+    const ry=Math.max(0,Math.min(cH-1,y0));
+    const rx1=Math.max(0,Math.min(cW-1,x1));
+    const ry1=Math.max(0,Math.min(cH-1,y1));
+    const rw=rx1-rx, rh=ry1-ry;
+    if(rw<=0||rh<=0) return;
+    overlayCtx.strokeStyle=col; overlayCtx.lineWidth=1.5;
+    overlayCtx.strokeRect(rx,ry,rw,rh);
+    // Score label — show above if room, below if at top edge
+    const txt=m.score.toFixed(2);
+    const tw=overlayCtx.measureText(txt).width;
+    const labelH=16;
+    let labelY;
+    if(ry>=labelH){ labelY=ry-labelH; }
+    else if(ry1+labelH<=cH){ labelY=ry1; }
+    else { labelY=ry+2; }
+    const labelX=Math.min(rx, cW-tw-8);
+    overlayCtx.fillStyle=col;
+    overlayCtx.fillRect(labelX, labelY, tw+8, labelH);
+    overlayCtx.fillStyle='#0d0e12';
+    overlayCtx.fillText(txt, labelX+4, labelY+labelH-4);
+    const sp=S.speciesList.find(s=>s.id===m.species_id);
+    if(sp){
+      const [cx,cy]=m.centroid;
+      // Clamp centroid
+      const ccx=Math.max(40,Math.min(cW-40,cx));
+      const ccy=Math.max(14,Math.min(cH-4,cy));
+      overlayCtx.font='bold 12px Syne,sans-serif';
+      const lw=overlayCtx.measureText(sp.name).width;
+      overlayCtx.fillStyle='rgba(13,14,18,.75)';
+      overlayCtx.fillRect(ccx-lw/2-5, ccy-14, lw+10, 18);
+      overlayCtx.fillStyle='#ffd166';
+      overlayCtx.fillText(sp.name, ccx-lw/2, ccy);
+    }
+  });
+}
+
+function drawPromptedBoxes(){
+  boxCtx.clearRect(0,0,boxCanvas.width,boxCanvas.height);
+  S.promptedBoxes.forEach(pb=>{
+    const[x0,y0,x1,y1]=pb.box;
+    boxCtx.strokeStyle=pb.label?'#00d4aa':'#ff4d6d';
+    boxCtx.lineWidth=1.5;boxCtx.setLineDash([5,3]);
+    boxCtx.strokeRect(x0,y0,x1-x0,y1-y0);boxCtx.setLineDash([]);
+  });
+}
+
+/* ════════════════════════════════════════════════
+   MASK PIXELS
+════════════════════════════════════════════════ */
+function loadMaskPixels(maskMeta){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const oc=document.createElement('canvas');
+      oc.width=S.imageW;oc.height=S.imageH;
+      const ox=oc.getContext('2d');ox.drawImage(img,0,0);
+      const raw=ox.getImageData(0,0,S.imageW,S.imageH);
+      const rgba=new Uint8ClampedArray(S.imageW*S.imageH*4);
+      for(let i=0;i<raw.data.length;i+=4){
+        if(raw.data[i]>127){
+          // Store shape only (white); color is resolved dynamically from species in reCompositeOverlay.
+          rgba[i]=255;rgba[i+1]=255;rgba[i+2]=255;rgba[i+3]=255;
+        }
+      }
+      S.maskPixels[maskMeta.mask_id]=new ImageData(rgba,S.imageW,S.imageH);
+      resolve();
+    };
+    img.src='data:image/png;base64,'+maskMeta.mask_b64;
+  });
+}
+
+function _boxIoU(a, b){
+  const ix0=Math.max(a[0],b[0]), iy0=Math.max(a[1],b[1]);
+  const ix1=Math.min(a[2],b[2]), iy1=Math.min(a[3],b[3]);
+  const inter=Math.max(0,ix1-ix0)*Math.max(0,iy1-iy0);
+  if(!inter) return 0;
+  const aA=(a[2]-a[0])*(a[3]-a[1]), bA=(b[2]-b[0])*(b[3]-b[1]);
+  return inter/(aA+bA-inter);
+}
+
+async function applyOverlayResult(r){
+  if(r.mask_list){
+    // Split current masks into frozen (kept as-is) and non-frozen (will be replaced)
+    const frozenEntries = S.maskList.filter(m=>S.frozenMasks.has(m.mask_id));
+    const prevNonFrozen = S.maskList.filter(m=>!S.frozenMasks.has(m.mask_id));
+    const newMasks      = r.mask_list.filter(m=>!S.frozenMasks.has(m.mask_id));
+
+    // Carry species assignments forward by spatial IoU matching.
+    // For each incoming new mask, find the previous non-frozen mask whose
+    // bounding box overlaps most — if IoU >= 0.3, inherit its species.
+    const prevAssigned = prevNonFrozen.filter(m=>m.species_id!=null);
+    for(const nm of newMasks){
+      let bestIoU=0, bestSpecies=null;
+      for(const pm of prevAssigned){
+        const iou=_boxIoU(nm.box, pm.box);
+        if(iou>bestIoU){ bestIoU=iou; bestSpecies=pm.species_id; }
+      }
+      if(bestIoU>=0.3 && bestSpecies!=null){
+        nm.species_id=bestSpecies;
+        // Sync to server so export sees the assignment
+        api('assign_species',{mask_id:nm.mask_id, species_id:bestSpecies});
+      }
+    }
+
+    // Load pixel data for incoming new masks.
+    // Skip masks whose pixels we already own correctly:
+    //  - frozen masks (protected from re-segmentation, pixels already in S.maskPixels)
+    //  - the mask just committed via brush/eraser (S._skipPixelReloadForId)
+    const skipId = S._skipPixelReloadForId ?? null;
+    await Promise.all(newMasks.map(m=>{
+      if(m.mask_id === skipId) return Promise.resolve();
+      return loadMaskPixels(m);
+    }));
+
+    // NOTE: Overlap removal is handled server-side in _render_overlay (first-mask-wins
+    // on the claimed pixel map). The server sends each mask's already-clipped binary,
+    // so we must NOT re-apply overlap removal here — doing so against the stale
+    // S.maskList (which hasn't been replaced yet) would wrongly zero out pixels of
+    // new masks that happen to share space with old masks being discarded.
+
+    // Merge: frozen first, then new (drop non-frozen old masks)
+    S.maskList=[...frozenEntries, ...newMasks];
+    // Clean up pixel data for masks no longer in the list
+    const activeIds=new Set(S.maskList.map(m=>m.mask_id));
+    for(const id of Object.keys(S.maskPixels)){
+      if(!activeIds.has(parseInt(id))) delete S.maskPixels[id];
+    }
+
+    renderMaskList(); updateEditTargetSelect();
+    if(S.mode==='folder') renderFilmstrip();
+  }
+  reCompositeOverlay();
+  if(r.prompted_boxes) S.promptedBoxes=r.prompted_boxes;
+  drawPromptedBoxes();
+}
+
+/* ════════════════════════════════════════════════
+   TOOL SWITCHING
+════════════════════════════════════════════════ */
+function setTool(t){
+  S.tool=t;
+  document.getElementById('tool-box').className='tool-btn'+(t==='box'?' active-box':'');
+  document.getElementById('tool-brush').className='tool-btn'+(t==='brush'?' active-brush':'');
+  document.getElementById('tool-eraser').className='tool-btn'+(t==='eraser'?' active-eraser':'');
+  const ip=t==='brush'||t==='eraser';
+  document.getElementById('box-mode-group').style.opacity=ip?'0':'1';
+  document.getElementById('box-mode-group').style.pointerEvents=ip?'none':'auto';
+  document.getElementById('brush-size-group').classList.toggle('visible',ip);
+  document.getElementById('edit-target-group').classList.toggle('visible',ip);
+  document.getElementById('sep-edit').style.opacity=ip?'1':'0';
+  document.getElementById('undo-btn').classList.toggle('visible',ip);
+  document.getElementById('commit-btn').classList.toggle('visible',ip);
+  if(ip){
+    interactCanvas.style.cursor='none';
+    brushCursor.style.display='block';
+    updateBrushCursorStyle();
+    showPaintLayer();
+  } else {
+    interactCanvas.style.cursor='crosshair';
+    brushCursor.style.display='none';
+    paintCtx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
+    setEditMask(-1);
+  }
+  document.getElementById('edit-banner').classList.toggle('visible',ip&&S.editMaskId>=0);
+}
+function setBoxMode(m){
+  S.boxMode=m;
+  document.getElementById('btn-pos').className='toggle-btn'+(m==='positive'?' active-pos':'');
+  document.getElementById('btn-neg').className='toggle-btn'+(m==='negative'?' active-neg':'');
+}
+function updateBrushSize(v){
+  S.brushSize=parseInt(v);
+  document.getElementById('brush-size-val').textContent=v;
+  updateBrushCursorStyle();
+}
+function updateBrushCursorStyle(){
+  const sz=S.brushSize * S.zoom;   // screen pixels
+  brushCursor.style.width=sz+'px';brushCursor.style.height=sz+'px';
+  brushCursor.style.borderColor=S.tool==='eraser'?'var(--eraser-color)':'var(--brush-color)';
+}
+function setEditMask(id){
+  S.editMaskId=id; S.paintHistory=[];
+  document.getElementById('edit-mask-select').value=id>=0?id:-1;
+  document.getElementById('edit-banner-id').textContent=id;
+  document.getElementById('edit-banner').classList.toggle('visible',id>=0&&(S.tool==='brush'||S.tool==='eraser'));
+  showPaintLayer(); renderMaskList();
+}
+function showPaintLayer(){
+  paintCtx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
+  if(S.editMaskId<0||!S.maskPixels[S.editMaskId]) return;
+  // Render the edit mask in its resolved color (not raw white) so it blends
+  // naturally with the overlay and doesn't occlude other masks' colors.
+  _paintLayerDraw(S.editMaskId);
+}
+
+function _paintLayerDraw(id){
+  const pixels = S.maskPixels[id];
+  if(!pixels) return;
+  const m = S.maskList.find(m=>m.mask_id===id);
+  const [cr,cg,cb] = m ? _resolveColor(m) : [120, 122, 140];
+  const src = pixels.data;
+  const data = new Uint8ClampedArray(src.length);
+  for(let i=0;i<src.length;i+=4){
+    if(src[i+3]===0) continue;
+    data[i]=cr; data[i+1]=cg; data[i+2]=cb; data[i+3]=200;
+  }
+  paintCtx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
+  paintCtx.putImageData(new ImageData(data,paintCanvas.width,paintCanvas.height),0,0);
+}
+function updateEditTargetSelect(){
+  const sel=document.getElementById('edit-mask-select');
+  sel.innerHTML='<option value="-1">— select —</option>'+
+    S.maskList.map(m=>`<option value="${m.mask_id}">Mask ${m.mask_id} (${m.score.toFixed(2)})</option>`).join('');
+  if(S.editMaskId>=0) sel.value=S.editMaskId;
+}
+
+/* ════════════════════════════════════════════════
+   PAINT / ERASE
+════════════════════════════════════════════════ */
+interactCanvas.addEventListener('mousemove',e=>{
+  const pos=canvasPos(e);
+  brushCursor.style.left=e.clientX+'px';brushCursor.style.top=e.clientY+'px';
+  if(S.tool==='box'){
+    if(!S.drawing) return;
+    const bs=S.boxStart;
+    boxCtx.clearRect(0,0,boxCanvas.width,boxCanvas.height);
+    drawPromptedBoxes();
+    boxCtx.strokeStyle=S.boxMode==='positive'?'#00d4aa':'#ff4d6d';
+    boxCtx.lineWidth=1.5;boxCtx.setLineDash([5,3]);
+    boxCtx.strokeRect(bs.x,bs.y,pos.x-bs.x,pos.y-bs.y);boxCtx.setLineDash([]);
+    return;
+  }
+  // Highlight mask under cursor (canvas hover)
+  if(!S.painting){
+    const hit=findMaskAt(pos.x,pos.y);
+    const newId=hit?hit.mask_id:null;
+    if(newId!==S._canvasHoverMaskId){
+      S._canvasHoverMaskId=newId;
+      // Only use canvas hover if no sidebar card is being hovered
+      if(S._hoverMaskId===null){
+        if(_hoverRaf) cancelAnimationFrame(_hoverRaf);
+        _hoverRaf=requestAnimationFrame(()=>{ reCompositeOverlay(); drawPromptedBoxes(); });
+      }
+    }
+    return;
+  }
+  paintStroke(pos.x,pos.y);
+});
+
+interactCanvas.addEventListener('mousedown',e=>{
+  if(e.button!==0) return; // only left-click triggers drawing/painting
+  const pos=canvasPos(e);
+  if(S.tool==='box'){S.drawing=true;S.boxStart=pos;return}
+  if(S.tool==='brush'||S.tool==='eraser'){
+    if(S.editMaskId<0){toast('Select a mask to edit first');return}
+    pushHistory(); S.painting=true; paintStroke(pos.x,pos.y);
+  }
+});
+
+interactCanvas.addEventListener('mouseup',async e=>{
+  if(e.button!==0) return;
+  if(S.tool==='box'){S.drawing=false;await finishBox(e);return}
+  if(!S.painting) return;
+  S.painting=false;
+});
+
+interactCanvas.addEventListener('mouseleave',()=>{
+  brushCursor.style.display='none';
+  if(S.painting) S.painting=false;
+  S._canvasHoverMaskId=null;
+  if(_hoverRaf) cancelAnimationFrame(_hoverRaf);
+  _hoverRaf=requestAnimationFrame(()=>{ reCompositeOverlay(); drawPromptedBoxes(); });
+});
+interactCanvas.addEventListener('mouseenter',()=>{
+  if(S.tool!=='box') brushCursor.style.display='block';
+});
+
+function paintStroke(x,y){
+  const id=S.editMaskId;
+  if(id<0) return;
+  const pixels=S.maskPixels[id];
+  if(!pixels) return;
+  const r=S.brushSize/2;
+  const data=new Uint8ClampedArray(pixels.data);
+  const W=S.imageW,H=S.imageH;
+  const x0=Math.max(0,Math.floor(x-r)),x1=Math.min(W-1,Math.ceil(x+r));
+  const y0=Math.max(0,Math.floor(y-r)),y1=Math.min(H-1,Math.ceil(y+r));
+  for(let py=y0;py<=y1;py++){
+    for(let px=x0;px<=x1;px++){
+      if(Math.sqrt((px-x)**2+(py-y)**2)>r) continue;
+      const idx=(py*W+px)*4;
+      if(S.tool==='eraser'){
+        data[idx]=0;data[idx+1]=0;data[idx+2]=0;data[idx+3]=0;
+      } else {
+        // Only paint pixels not owned by another mask
+        let ownedByOther=false;
+        for(const m of S.maskList){
+          if(m.mask_id===id) continue;
+          const op=S.maskPixels[m.mask_id];
+          if(op && op.data[idx+3]>0){ownedByOther=true;break}
+        }
+        if(!ownedByOther){
+          // Shape-only storage: white + full alpha; color resolved at composite time.
+          data[idx]=255;data[idx+1]=255;data[idx+2]=255;data[idx+3]=255;
+        }
+      }
+    }
+  }
+  S.maskPixels[id]=new ImageData(data,W,H);
+  _paintLayerDraw(id);
+}
+
+function pushHistory(){
+  const id=S.editMaskId;
+  if(id<0||!S.maskPixels[id]) return;
+  S.paintHistory.push(new ImageData(new Uint8ClampedArray(S.maskPixels[id].data),S.imageW,S.imageH));
+  if(S.paintHistory.length>30) S.paintHistory.shift();
+}
+function undoStroke(){
+  if(!S.paintHistory.length){toast('Nothing to undo');return}
+  S.maskPixels[S.editMaskId]=S.paintHistory.pop();
+  _paintLayerDraw(S.editMaskId);
+}
+
+async function commitEdits(){
+  const id=S.editMaskId;
+  if(id<0){toast('No mask selected');return}
+  const pixels=S.maskPixels[id];
+  if(!pixels) return;
+  const oc=document.createElement('canvas');
+  oc.width=S.imageW;oc.height=S.imageH;
+  const ox=oc.getContext('2d');
+  const gray=new Uint8ClampedArray(S.imageW*S.imageH*4);
+  for(let i=0;i<pixels.data.length;i+=4){
+    const on=pixels.data[i+3]>0?255:0;
+    gray[i]=on;gray[i+1]=on;gray[i+2]=on;gray[i+3]=255;
+  }
+  ox.putImageData(new ImageData(gray,S.imageW,S.imageH),0,0);
+  const mask_b64=oc.toDataURL('image/png').split(',')[1];
+  loading(true,'Saving mask edits…');
+  const r=await api('update_mask',{mask_id:id,mask_b64});
+  loading(false);
+  if(r.error){setStatus('Error: '+r.error,'error');return}
+  // Prevent applyOverlayResult from reloading pixels for this mask from the server
+  // response — our local S.maskPixels[id] is already the authoritative painted version.
+  S._skipPixelReloadForId = id;
+  await applyOverlayResult(r);
+  S._skipPixelReloadForId = null;
+  drawPromptedBoxes();
+  setStatus(`Mask ${id} updated`,'success');toast(`Mask ${id} saved`);
+  S.paintHistory=[];
+  // Clear the white paint layer — the colored overlay now shows the committed mask.
+  // showPaintLayer() would re-draw white pixels that occlude the colored overlay.
+  paintCtx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
+}
+
+/* ════════════════════════════════════════════════
+   BOX DRAWING
+════════════════════════════════════════════════ */
+async function finishBox(e){
+  if(!S.boxStart) return;
+  const pos=canvasPos(e),bs=S.boxStart;S.boxStart=null;
+  const dx=Math.abs(pos.x-bs.x),dy=Math.abs(pos.y-bs.y);
+  if(dx<5||dy<5){
+    // Too small — clear the drag preview but keep existing boxes
+    boxCtx.clearRect(0,0,boxCanvas.width,boxCanvas.height);
+    drawPromptedBoxes();
+    return;
+  }
+  const x0=Math.min(bs.x,pos.x),x1=Math.max(bs.x,pos.x);
+  const y0=Math.min(bs.y,pos.y),y1=Math.max(bs.y,pos.y);
+  const W=S.imageW,H=S.imageH;
+  const cx=(x0+x1)/2/W,cy=(y0+y1)/2/H;
+  const bw=(x1-x0)/W,bh=(y1-y0)/H;
+  const label=S.boxMode==='positive';
+  // Optimistically add box to local list so it shows immediately
+  S.promptedBoxes.push({box:[x0,y0,x1,y1],label});
+  drawPromptedBoxes();
+  loading(true,`Adding ${S.boxMode} box…`);
+  await _syncFrozenMasksToServer();
+  const r=await api('add_box',{box:[cx,cy,bw,bh],label,px_box:[x0,y0,x1,y1], frozen_ids:[...S.frozenMasks]});
+  loading(false);
+  if(r.error){
+    // Roll back the optimistic add
+    S.promptedBoxes.pop();
+    drawPromptedBoxes();
+    setStatus('Error: '+r.error,'error');
+    return;
+  }
+  // Server may return updated prompted_boxes list; sync it
+  if(r.prompted_boxes) S.promptedBoxes=r.prompted_boxes;
+  await applyOverlayResult(r);
+  drawPromptedBoxes();   // guarantee boxes visible after everything
+  setStatus(`Added ${S.boxMode} box`,'success');
+}
+
+
+
+/* ════════════════════════════════════════════════
+   CONTEXT MENU
+════════════════════════════════════════════════ */
+interactCanvas.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  const pos=canvasPos(e),hit=findMaskAt(pos.x,pos.y);
+  if(!hit){hideCtxMenu();return}
+  showCtxMenu(hit,e.clientX,e.clientY);
+});
+function findMaskAt(px,py){
+  for(const m of S.maskList){
+    const[x0,y0,x1,y1]=m.box;
+    if(px>=x0&&px<=x1&&py>=y0&&py<=y1) return m;
+  }
+  return null;
+}
+function showCtxMenu(mask,cx,cy){
+  S.activeMaskId=mask.mask_id;
+  const [_cr,_cg,_cb]=_resolveColor(mask); document.getElementById('ctx-swatch').style.background='rgb('+_cr+','+_cg+','+_cb+')';
+  document.getElementById('ctx-title').textContent=`Mask ${mask.mask_id}`;
+  document.getElementById('ctx-score').textContent=`Score: ${mask.score.toFixed(3)}`;
+  const list=document.getElementById('ctx-species-list');
+  const sorted=[...S.speciesList].sort((a,b)=>a.name.localeCompare(b.name));
+  list.innerHTML=sorted.length===0
+    ?'<div class="ctx-empty">No species added yet</div>'
+    :sorted.map(sp=>`<div class="ctx-species-item ${mask.species_id===sp.id?'selected':''}" onclick="assignSpecies(${sp.id})">
+        <div class="ctx-species-dot" style="background:${speciesColor(sp.id)}"></div>
+        <span>${sp.name}</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--text-dim)">#${sp.id}</span>
+      </div>`).join('');
+  document.getElementById('ctx-unassign').style.display=
+    mask.species_id!=null ? 'flex' : 'none';
+  // Add visible first so offsetWidth/Height are real measurements
+  ctxMenu.classList.add('visible');
+  const mw=ctxMenu.offsetWidth, mh=ctxMenu.offsetHeight;
+  ctxMenu.style.left=Math.min(cx+4,window.innerWidth-mw-10)+'px';
+  ctxMenu.style.top =Math.min(cy+4,window.innerHeight-mh-10)+'px';
+}
+function hideCtxMenu(){ctxMenu.classList.remove('visible');S.activeMaskId=null}
+
+async function assignSpecies(sid){
+  if(S.activeMaskId===null) return;
+  await api('assign_species',{mask_id:S.activeMaskId,species_id:sid});
+  const m=S.maskList.find(m=>m.mask_id===S.activeMaskId);
+  if(m) m.species_id=sid;
+  hideCtxMenu(); renderMaskList(); reCompositeOverlay(); drawPromptedBoxes();
+  if(S.mode==='folder') renderFilmstrip();
+  toast(`Mask ${S.activeMaskId} → "${S.speciesList.find(s=>s.id===sid)?.name||sid}"`);
+}
+async function unassignSpecies(){
+  if(S.activeMaskId===null) return;
+  await api('assign_species',{mask_id:S.activeMaskId,species_id:null});
+  const m=S.maskList.find(m=>m.mask_id===S.activeMaskId);
+  if(m) m.species_id=null;
+  hideCtxMenu(); renderMaskList(); reCompositeOverlay(); drawPromptedBoxes();
+  if(S.mode==='folder') renderFilmstrip();
+  toast(`Assignment removed`);
+}
+function editMaskFromCtx(tool){
+  const id=S.activeMaskId;
+  hideCtxMenu();
+  setTool(tool);
+  setEditMask(id);
+}
+async function deleteMaskFromCtx(){
+  const id=S.activeMaskId;
+  hideCtxMenu();
+  await deleteMask(id);
+}
+
+document.getElementById('ctx-edit-brush').onclick=()=>editMaskFromCtx('brush');
+document.getElementById('ctx-edit-eraser').onclick=()=>editMaskFromCtx('eraser');
+document.getElementById('ctx-delete-mask').onclick=deleteMaskFromCtx;
+document.getElementById('ctx-unassign').onclick=unassignSpecies;
+document.getElementById('ctx-close').onclick=hideCtxMenu;
+// Use mousedown (not click) so the contextmenu open path doesn't race with close
+document.addEventListener('mousedown',e=>{
+  if(!ctxMenu.contains(e.target) && e.button===0) hideCtxMenu();
+});
+
+/* ════════════════════════════════════════════════
+   SINGLE-MODE IMAGE LOADING
+════════════════════════════════════════════════ */
+async function uploadFile(file){
+  if(!file) return;
+  loading(true,`Loading "${file.name}"…`);
+  const fd=new FormData();fd.append('image',file);
+  if(_pendingJsonFile) fd.append('json',_pendingJsonFile);
+  const r=await api('upload',fd);
+  loading(false);
+  if(r.error){setStatus('Error: '+r.error,'error');return}
+  S._lastImageFile=file; S._lastImageUrl=null;
+  S.imageW=r.width;S.imageH=r.height;
+  setCanvasSize(r.width,r.height);showCanvas();
+  drawImageB64(r.image_b64);
+  overlayCtx.clearRect(0,0,r.width,r.height);
+  S.maskList=[];S.maskPixels={};S.promptedBoxes=[];S.editMaskId=-1;
+  S.isolatedMaskId=null;S._hoverMaskId=null;S._canvasHoverMaskId=null;S.frozenMasks=new Set();
+  renderMaskList();updateEditTargetSelect();
+  zoomFit();
+  _fetchGeoTransform();
+  setStatus(`Loaded "${r.name}" · ${r.width}×${r.height}${_pendingJsonFile?' · geo ✓':''}`,'success');
+  toast(`${r.width}×${r.height} px${_pendingJsonFile?' + geo JSON':''}`);
+}
+async function loadUrl(){
+  const url=document.getElementById('url-input').value.trim();
+  if(!url) return;
+  loading(true,'Downloading…');
+  const r=await api('load_url',{url});
+  loading(false);
+  if(r.error){setStatus('Error: '+r.error,'error');return}
+  S._lastImageFile=null; S._lastImageUrl=url;
+  S.imageW=r.width;S.imageH=r.height;
+  setCanvasSize(r.width,r.height);showCanvas();
+  drawImageB64(r.image_b64);
+  S.maskList=[];S.maskPixels={};S.promptedBoxes=[];S.editMaskId=-1;
+  S.isolatedMaskId=null;S._hoverMaskId=null;S._canvasHoverMaskId=null;S.frozenMasks=new Set();
+  renderMaskList();updateEditTargetSelect();
+  zoomFit();
+  setStatus(`Loaded from URL · ${r.width}×${r.height}`,'success');
+}
+function handleDragOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('drag-over')}
+function handleDragLeave(){document.getElementById('drop-zone').classList.remove('drag-over')}
+function handleDrop(e){
+  e.preventDefault();document.getElementById('drop-zone').classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type.startsWith('image/')) uploadFile(f);
+}
+
+/* ════════════════════════════════════════════════
+   PROMPTS
+════════════════════════════════════════════════ */
+
+/**
+ * Re-upload pixel data for all frozen masks to the server so their edited
+ * binaries survive the next SAM re-segmentation.  Must be called before
+ * every text_prompt / add_box request that goes to the server.
+ */
+async function _syncFrozenMasksToServer(){
+  for(const id of S.frozenMasks){
+    const pixels = S.maskPixels[id];
+    if(!pixels) continue;
+    const oc=document.createElement('canvas');
+    oc.width=S.imageW; oc.height=S.imageH;
+    const ox=oc.getContext('2d');
+    const gray=new Uint8ClampedArray(S.imageW*S.imageH*4);
+    for(let i=0;i<pixels.data.length;i+=4){
+      const on=pixels.data[i+3]>0?255:0;
+      gray[i]=on;gray[i+1]=on;gray[i+2]=on;gray[i+3]=255;
+    }
+    ox.putImageData(new ImageData(gray,S.imageW,S.imageH),0,0);
+    const mask_b64=oc.toDataURL('image/png').split(',')[1];
+    const m=S.maskList.find(m=>m.mask_id===id);
+    await api('update_mask',{
+      mask_id:id, mask_b64,
+      meta:{species_id:m?.species_id??null, score:m?.score??1, color:m?.color??[128,128,128]},
+    });
+  }
+}
+
+async function runTextPrompt(){
+  const prompt=document.getElementById('text-prompt-input').value.trim();
+  if(!prompt) return;
+  loading(true,`Segmenting "${prompt}"…`);
+  await _syncFrozenMasksToServer();
+  const r=await api('text_prompt',{prompt});
+  loading(false);
+  if(r.error){setStatus('Error: '+r.error,'error');return}
+  await applyOverlayResult(r);
+  drawPromptedBoxes();
+  setStatus(r.status||'Done','success');
+}
+async function setConfidence(val){
+  await _syncFrozenMasksToServer();
+  const r=await api('set_confidence',{value:parseFloat(val)});
+  if(r.error||!r.mask_list) return;
+  await applyOverlayResult(r);
+  drawPromptedBoxes();
+}
+async function clearImage(){
+  loading(true,'Clearing prompts…');
+  // Re-upload/reload the current image to reset processor state fully
+  // This ensures add_box / text_prompt work after clear
+  let r;
+  if(S._lastImageFile){
+    const fd=new FormData();fd.append('image',S._lastImageFile);
+    r=await api('upload',fd);
+  } else if(S._lastImageUrl){
+    r=await api('load_url',{url:S._lastImageUrl});
+  } else if(S._lastImagePath){
+    r=await api('load_path',{path:S._lastImagePath});
+  } else {
+    // No image ref stored — just clear prompts server-side (won't re-enable segmentation)
+    try{ await api('clear_prompts',{}); }catch(_){}
+  }
+  loading(false);
+  overlayCtx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
+  boxCtx.clearRect(0,0,boxCanvas.width,boxCanvas.height);
+  paintCtx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
+  S.maskList=[];S.maskPixels={};S.promptedBoxes=[];
+  S.editMaskId=-1;S.isolatedMaskId=null;S._hoverMaskId=null;S._canvasHoverMaskId=null;S.frozenMasks=new Set();
+  document.getElementById('text-prompt-input').value='';
+  renderMaskList();updateEditTargetSelect();
+  setStatus('Prompts cleared — ready for new prompts','success');
+  if(S.mode==='folder'){
+    const key=S.folderItems[S.folderIdx].path;
+    delete S.snapshots[key];
+    renderFilmstrip(); updateNavUI();
+  }
+  toast('Cleared — image still loaded');
+}
+
+/* ════════════════════════════════════════════════
+   SPECIES
+════════════════════════════════════════════════ */
+const SPECIES_COLORS=['#6c63ff','#00d4aa','#f5a623','#ff4d6d','#4ecdc4','#ffe66d','#a8dadc','#c77dff'];
+function speciesColor(id){
+  const sp=S.speciesList.find(s=>s.id===id);
+  return (sp && sp.color) ? sp.color : SPECIES_COLORS[(id-1)%SPECIES_COLORS.length];
+}
+
+async function addSpecies(){
+  const inp=document.getElementById('species-name-input');
+  const colorInp=document.getElementById('new-species-color');
+  const colorWrap=document.getElementById('new-species-color-wrap');
+  const name=inp.value.trim();if(!name) return;
+  // Duplicate check (case-insensitive)
+  if(S.speciesList.some(s=>s.name.toLowerCase()===name.toLowerCase())){
+    toast(`"${name}" already exists`);inp.select();return;
+  }
+  const chosenColor=colorInp.value||SPECIES_COLORS[0];
+  const colorClash=S.speciesList.find(s=>s.color && s.color.toLowerCase()===chosenColor.toLowerCase());
+  if(colorClash){toast(`Color already used by "${colorClash.name}" — pick a different one`);return;}
+  const r=await api('add_species',{name});
+  if(r.error){toast('Error: '+r.error);return}
+  // Attach chosen color to the new entry (color is client-side only)
+  const newEntry=r.species_list.find(s=>s.name===name);
+  if(newEntry) newEntry.color=chosenColor;
+  // Merge colors from existing entries so they're not lost
+  r.species_list.forEach(s=>{ const ex=S.speciesList.find(e=>e.id===s.id); if(ex&&ex.color&&!s.color) s.color=ex.color; });
+  S.speciesList=r.species_list;
+  inp.value='';
+  // Advance color picker to next palette color
+  const nextColor=SPECIES_COLORS[S.speciesList.length%SPECIES_COLORS.length];
+  colorInp.value=nextColor; colorWrap.style.background=nextColor;
+  S.speciesList.sort((a,b)=>a.name.localeCompare(b.name));
+  renderSpeciesList();
+  reCompositeOverlay();
+  toast(`"${name}" added`);
+}
+
+async function deleteSpecies(id){
+  const sp=S.speciesList.find(s=>s.id===id);
+  if(!sp) return;
+  // Check if any mask uses this species
+  const inUse=S.maskList.some(m=>m.species_id===id);
+  if(inUse){
+    toast(`Cannot delete "${sp.name}" — it is assigned to a mask`);return;
+  }
+  const r=await api('delete_species',{id});
+  if(r.error){toast('Error: '+r.error);return}
+  // Preserve client-side colors on surviving entries
+  r.species_list.forEach(s=>{ const ex=S.speciesList.find(e=>e.id===s.id); if(ex&&ex.color) s.color=ex.color; });
+  S.speciesList=r.species_list;
+  renderSpeciesList();
+  reCompositeOverlay();
+  toast(`"${sp.name}" removed`);
+}
+
+function changeSpeciesColor(id, hex){
+  const sp=S.speciesList.find(s=>s.id===id);
+  if(!sp) return;
+  // Reject if another species already uses this exact color
+  const clash=S.speciesList.find(s=>s.id!==id && s.color && s.color.toLowerCase()===hex.toLowerCase());
+  if(clash){
+    toast(`Color already used by "${clash.name}"`);
+    // Revert the picker to the current color
+    const wrap=document.getElementById('swatch-'+id);
+    const inp=wrap && wrap.querySelector('input[type=color]');
+    if(inp) inp.value=sp.color||'#6c63ff';
+    return;
+  }
+  sp.color=hex;
+  const wrap=document.getElementById('swatch-'+id);
+  if(wrap) wrap.style.background=hex;
+  reCompositeOverlay();
+  reDrawLabels();
+}
+
+function renderSpeciesList(){
+  const el=document.getElementById('species-list');
+  if(!S.speciesList.length){el.innerHTML='<div class="empty-hint">No classes added yet</div>';return}
+  // Always display alphabetically
+  const sorted=[...S.speciesList].sort((a,b)=>a.name.localeCompare(b.name));
+  el.innerHTML=sorted.map(sp=>{
+    const col=speciesColor(sp.id);
+    return `<div class="species-chip">
+      <div class="chip-color" id="swatch-${sp.id}" style="background:${col}" title="Click to change colour">
+        <input type="color" value="${col}" oninput="changeSpeciesColor(${sp.id},this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:none;padding:0">
+      </div>
+      <span class="chip-name">${sp.name}</span>
+      <span class="chip-id">#${sp.id}</span>
+      <button class="chip-del" onclick="deleteSpecies(${sp.id})" title="Remove species">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════════════
+   MASK LIST
+════════════════════════════════════════════════ */
+function renderMaskList(){
+  const el=document.getElementById('mask-list');
+  if(!S.maskList.length){el.innerHTML='<div class="empty-hint">No masks yet</div>';el.classList.remove('has-isolated');return}
+  const isol=S.isolatedMaskId;
+  el.classList.toggle('has-isolated', isol!==null);
+  el.innerHTML=S.maskList.map(m=>{
+    const sp=S.speciesList.find(s=>s.id===m.species_id);
+    const col=sp ? speciesColor(m.species_id) : '#787a8c';
+    const frozen=S.frozenMasks.has(m.mask_id);
+    const cls=[
+      'mask-card',
+      m.mask_id===S.editMaskId?'editing':'',
+      m.mask_id===isol?'isolated':'',
+      frozen?'frozen':'',
+    ].filter(Boolean).join(' ');
+    return `<div class="${cls}" id="mcard-${m.mask_id}"
+        onmouseenter="highlightMask(${m.mask_id})" onmouseleave="highlightMask(null)"
+        oncontextmenu="e=>{e.preventDefault();showCtxMenuById(${m.mask_id},e.clientX,e.clientY)}">
+      <div class="mask-swatch" style="background:${col};flex-shrink:0"></div>
+      <div class="mask-info" style="min-width:0;flex:1">
+        <div style="font-size:11px;font-weight:500">Mask ${m.mask_id}</div>
+        <div style="font-size:10px;color:${sp?'var(--accent)':'var(--text-dim)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px">${sp?sp.name:'unlabeled'}</div>
+      </div>
+      <button class="mask-edit-btn ${frozen?'frozen-active':''}" title="${frozen?'Unfreeze mask':'Freeze mask (protect from re-segmentation)'}" onclick="toggleFreeze(${m.mask_id})">
+        ${frozen
+          ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
+          : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`
+        }
+      </button>
+      <button class="mask-edit-btn" title="${isol===m.mask_id?'Show all':'Isolate'}" onclick="isolateMask(${m.mask_id})"
+        style="${isol===m.mask_id?'color:var(--warn);border-color:var(--warn)':''}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg>
+      </button>
+      ${sp?`<button class="mask-edit-btn" title="Remove species" onclick="unassignMask(${m.mask_id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>`:''}
+      <button class="mask-edit-btn" title="Edit with brush" onclick="startEditingMask(${m.mask_id})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </button>
+      <button class="mask-edit-btn" title="Delete mask" onclick="deleteMask(${m.mask_id})" style="border-color:transparent" onmouseenter="this.style.color='var(--danger)'" onmouseleave="this.style.color=''">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function isolateMask(id){
+  S.isolatedMaskId=(S.isolatedMaskId===id)?null:id;
+  renderMaskList(); reCompositeOverlay(); drawPromptedBoxes();
+  toast(S.isolatedMaskId===null?'Showing all masks':`Isolated Mask ${id}`);
+}
+
+function toggleFreeze(id){
+  if(S.frozenMasks.has(id)){
+    S.frozenMasks.delete(id);
+    toast(`Mask ${id} unfrozen — will update with new prompts`);
+  } else {
+    S.frozenMasks.add(id);
+    toast(`Mask ${id} frozen — protected from re-segmentation`);
+  }
+  renderMaskList();
+}
+
+async function unassignMask(maskId){
+  await api('assign_species',{mask_id:maskId,species_id:null});
+  const m=S.maskList.find(m=>m.mask_id===maskId);
+  if(m) m.species_id=null;
+  renderMaskList(); reCompositeOverlay(); drawPromptedBoxes();
+  if(S.mode==='folder') renderFilmstrip();
+  toast(`Mask ${maskId} unassigned`);
+}
+
+async function deleteMask(id){
+  const r=await api('delete_mask',{mask_id:id});
+  if(r.error){toast('Error: '+r.error);return}
+  S.maskList=S.maskList.filter(m=>m.mask_id!==id);
+  delete S.maskPixels[id];
+  if(S.editMaskId===id){
+    S.editMaskId=-1;
+    paintCtx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
+    document.getElementById('edit-banner').classList.remove('visible');
+  }
+  if(S.isolatedMaskId===id) S.isolatedMaskId=null;
+  if(S._hoverMaskId===id) S._hoverMaskId=null;
+  // Prompted boxes reference mask indices which may have shifted — clear them
+  S.promptedBoxes=[];
+  boxCtx.clearRect(0,0,boxCanvas.width,boxCanvas.height);
+  renderMaskList(); updateEditTargetSelect(); reCompositeOverlay(); drawPromptedBoxes();
+  if(S.mode==='folder') renderFilmstrip();
+  toast(`Mask ${id} deleted`);
+}
+function startEditingMask(id){
+  // Ensure pixel data exists for this mask (may be missing if called before async load finished)
+  if(!S.maskPixels[id]){
+    const m=S.maskList.find(m=>m.mask_id===id);
+    if(m && m.mask_b64){
+      loadMaskPixels(m).then(()=>{ setTool('brush'); setEditMask(id); });
+      toast(`Loading mask data…`);
+      return;
+    }
+    toast('Mask pixel data not ready yet, try again');
+    return;
+  }
+  setTool('brush');
+  setEditMask(id);
+  toast(`Editing Mask ${id} — paint to add · eraser to remove · Save when done`);
+}
+function showCtxMenuById(id,cx,cy){const m=S.maskList.find(m=>m.mask_id===id);if(m)showCtxMenu(m,cx,cy)}
+let _hoverRaf=null;
+function highlightMask(id){
+  document.querySelectorAll('.mask-card').forEach(c=>c.classList.remove('highlighted'));
+  if(id!==null){const c=document.getElementById('mcard-'+id);if(c)c.classList.add('highlighted')}
+  S._hoverMaskId=id;
+  if(_hoverRaf) cancelAnimationFrame(_hoverRaf);
+  _hoverRaf=requestAnimationFrame(()=>{
+    reCompositeOverlay();
+    drawPromptedBoxes();
+  });
+}
+
+/* ════════════════════════════════════════════════
+   EXPORT (single)
+════════════════════════════════════════════════ */
+async function exportMasks(){
+  const folder=document.getElementById('export-folder').value.trim();
+  loading(true,'Exporting…');
+  const r=await api('export',{folder});
+  loading(false);
+  const res=document.getElementById('export-result');
+  if(r.error){res.className='export-result visible';res.style.color='var(--danger)';res.textContent=r.error;return}
+  res.className='export-result visible';res.style.color='';
+  res.innerHTML=`✓ PNG: ${r.png}`
+    +(r.gpkg?`<br>✓ GPKG: ${r.gpkg}`:'')
+    +(r.csv?`<br>✓ Legend CSV: ${r.csv}`:'')
+    +(r.legend?`<br>✓ Legend PNG: ${r.legend}`:'');
+  setStatus('Exported','success');toast('Export complete!');
+}
+
+/* ════════════════════════════════════════════════
+   KEYBOARD
+════════════════════════════════════════════════ */
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+  if(e.key==='v'||e.key==='V'){ setTool('box'); }
+  if(e.key==='b'||e.key==='B'){ setTool('brush'); }
+  if(e.key==='e'||e.key==='E'){ setTool('eraser'); }
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undoStroke()}
+  if(e.key==='+'||e.key==='='){zoomBy(1.25)}
+  if(e.key==='-'){zoomBy(0.8)}
+  if(e.key==='0'){zoomReset()}
+  if(e.key==='Escape'){
+    hideCtxMenu();
+    setTool('box');
+    setEditMask(-1);
+    S.isolatedMaskId=null;
+    S._hoverMaskId=null;
+    renderMaskList();
+    reCompositeOverlay();
+  }
+  if(e.key==='['&&(S.tool==='brush'||S.tool==='eraser')){updateBrushSize(Math.max(2,S.brushSize-5));document.getElementById('brush-size-slider').value=S.brushSize}
+  if(e.key===']'&&(S.tool==='brush'||S.tool==='eraser')){updateBrushSize(Math.min(80,S.brushSize+5));document.getElementById('brush-size-slider').value=S.brushSize}
+  if(S.mode==='folder'){
+    if(e.key==='ArrowLeft'){e.preventDefault();navGo(-1)}
+    if(e.key==='ArrowRight'){e.preventDefault();navGo(1)}
+  }
+});
+
+window.addEventListener('contextmenu',e=>{if(!interactCanvas.contains(e.target))e.preventDefault()});
+</script>
+</body>
+</html>
