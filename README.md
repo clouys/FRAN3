@@ -45,10 +45,15 @@ This work contains files from the SAM3 project and is therefore licensed under t
 
 ## Results
 The following is an example image of how the interface looks like. Note: the tree labeling may not necessarily be right, as it's an example of how labeled trees are shown providing a different colour for each species, and a grey neutral colour for non-classified trees.
+
 This application lets you choose a colour for each species and assigns you automatically one in case you don't need any special colour for the species.
+
 By holding the cursor and making a box, you can create a prompt that will then be fed to the SAM3 model, to recognize different trees in the image. 
+
 On the right bar, you will see the different masks recognized by the model, and you can either lock them (for the model not to change them), edit them with a brush or eraser (to perfect some details), erase them, isolate them (to view a particular mask alone) or see its assigned species.
+
 By right-clicking a mask, an options menu will appear letting you label the tree, erase the mask, or edit it.
+
 On the left menu bar, you will see, on the upper part, the images uploaded if in folder mode. Folders uploaded should have a json file for each image, specifying some spatial metrics needed to create the polygons afterwards, for them to be correctly displayed in an application such as [QGIS](https://qgis.org). Below, a text prompt will show which lets you type what you want SAM3 to recognize. Finally, an export menu will let you choose the exporting folder or export automatically to a certain destination, downloading a GeoPackage file to that location.
 
 <img width="1695" height="978" alt="Screenshot 2026-04-27 at 11 30 41" src="https://github.com/user-attachments/assets/afa22efc-2ce5-4f0a-8c58-f8e2c3b32381" />
