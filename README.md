@@ -8,11 +8,6 @@ This application is primarily designed for aerial forest image labeling by using
 
 ## Installation
 
-### Prerequisites
-
-- Python 3.12 or higher
-- PyTorch 2.7 or higher
-- CUDA-compatible GPU with CUDA 12.6 or higher
 
 1. **Create a new Conda environment:**
 
