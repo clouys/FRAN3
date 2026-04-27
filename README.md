@@ -46,8 +46,7 @@ After running these commands, a message will appear redirecting you to a local p
 
 ## SAM3 folder
 
-This work contains files from the SAM3 project and is therefore licensed under the SAM [License](sam3/LICENSE) - see the [LICENSE](LICENSE) file
-for details.
+This work contains files from the SAM3 project and is therefore licensed under the SAM [License](sam3/LICENSE).
 
 ## Image Results
 
