@@ -44,7 +44,7 @@ After running these commands, a message will appear redirecting you to a local p
 This work contains files from the SAM3 project and is therefore licensed under the SAM [License](sam3/LICENSE).
 
 ## Results
-The following is an example image of how the interface looks like. Note: the tree labeling may not necessarily be right, as it's an example of how labeled trees are shown providing a different colour for each species, and a grey neutral colour for non-classified trees.
+The following is an example image of how the interface looks like. **Note: the tree labeling may not necessarily be right, as it's an example of how labeled trees are shown providing a different colour for each species, and a grey neutral colour for non-classified trees.**
 
 This application lets you choose a colour for each species and assigns you automatically one in case you don't need any special colour for the species.
 
